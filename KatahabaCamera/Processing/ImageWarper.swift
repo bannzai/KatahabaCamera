@@ -65,7 +65,7 @@ class ImageWarper {
 
     let faceAreaMask = createInverseFaceMask(faceRect: faceRect, imageSize: originalSize)
 
-    let combinedMask = CIFilter.multiply()
+    let combinedMask = CIFilter.multiplyCompositing()
     combinedMask.inputImage = resizedMask
     combinedMask.backgroundImage = faceAreaMask
 
