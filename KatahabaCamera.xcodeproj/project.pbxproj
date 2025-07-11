@@ -267,7 +267,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"KatahabaCamera/Preview Content\"";
 				DEVELOPMENT_TEAM = TQPN82UBBY;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = NO;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = KatahabaCamera/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "KatahabaCamera needs access to your camera to take photos with shoulder-widening effect";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "KatahabaCamera needs permission to save photos to your photo library";
@@ -300,7 +300,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"KatahabaCamera/Preview Content\"";
 				DEVELOPMENT_TEAM = TQPN82UBBY;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = NO;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = KatahabaCamera/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "KatahabaCamera needs access to your camera to take photos with shoulder-widening effect";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "KatahabaCamera needs permission to save photos to your photo library";
