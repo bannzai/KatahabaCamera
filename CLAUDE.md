@@ -4,7 +4,7 @@
 
 ---
 
-## 1. 必須機能
+## 必須機能
 
 1. **写真撮影**  
    * シャッターボタンで現在のプレビューを 1 枚撮影する、エフェクトを焼き込んで写真ライブラリに保存する。  
@@ -17,7 +17,7 @@
 
 ---
 
-## 2. 技術メモ
+## 技術メモ
 
 * **Vision** `VNDetectFaceLandmarksRequest` で顔パーツ検出。  
 * **Vision** `VNGeneratePersonSegmentationRequest` で肩領域マスク (精度=accurate)。  
@@ -27,7 +27,7 @@
 
 ---
 
-## 3. ディレクトリ (ざっくり)
+## ディレクトリ (ざっくり)
 
 ```text
 KatahabaCamera/
@@ -41,7 +41,7 @@ KatahabaCamera/
 
 ---
 
-## 4. TODO
+## TODO
 
 - [ ] Xcode プロジェクト作成 (iOS 16+, SwiftUI テンプレート)。  
 - [ ] `CameraService` で `AVCaptureSession` 構築。  
@@ -51,3 +51,8 @@ KatahabaCamera/
 - [ ] シャッターボタン → HEIC 写真保存。  
 - [ ] SNSシェア機能
 ---
+
+### その他
+- デプロイメントターゲットは18.0にしよう
+- Localizationについて。英語だけ対応しよう。だから、Textに渡すものは全部英文で良い
+
