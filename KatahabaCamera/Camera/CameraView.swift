@@ -6,7 +6,7 @@ struct CameraView: View {
 
   var body: some View {
     ZStack {
-      if viewModel.cameraService.permissionGranted {
+      if viewModel.permissionGranted {
         CameraPreviewView(cameraService: viewModel.cameraService)
           .ignoresSafeArea()
 

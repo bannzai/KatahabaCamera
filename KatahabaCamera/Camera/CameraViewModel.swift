@@ -11,6 +11,7 @@ class CameraViewModel: ObservableObject {
   @Published var effectIntensity: Double = 0.7
   @Published var isSaving = false
   @Published var showShareSheet = false
+  @Published var permissionGranted = false
 
   let cameraService = CameraService()
   private let faceDetector = FaceDetector()
@@ -26,6 +27,12 @@ class CameraViewModel: ObservableObject {
         self?.capturedImage = image
         self?.isShowingEditView = true
         self?.processImage(image)
+      }
+      .store(in: &cancellables)
+    
+    cameraService.$permissionGranted
+      .sink { [weak self] granted in
+        self?.permissionGranted = granted
       }
       .store(in: &cancellables)
   }
