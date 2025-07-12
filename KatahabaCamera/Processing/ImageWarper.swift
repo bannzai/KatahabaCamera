@@ -35,26 +35,19 @@ class ImageWarper {
   private func applyFaceScaling(to image: CIImage, faceRect: CGRect, scale: CGFloat) -> CIImage {
     let faceCenterX = faceRect.midX
     let faceCenterY = faceRect.midY
-
-    let transform = CGAffineTransform(translationX: -faceCenterX, y: -faceCenterY)
-      .scaledBy(x: scale, y: scale)
-      .translatedBy(x: faceCenterX, y: faceCenterY)
-
-    let scaledFaceImage = image.transformed(by: transform)
-
-    let radialGradient = CIFilter.radialGradient()
-    radialGradient.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    radialGradient.radius0 = Float(faceRect.width * 0.3)
-    radialGradient.radius1 = Float(faceRect.width * 0.6)
-
-    guard let gradientMask = radialGradient.outputImage else { return image }
-
-    let blendFilter = CIFilter.blendWithMask()
-    blendFilter.inputImage = scaledFaceImage
-    blendFilter.backgroundImage = image
-    blendFilter.maskImage = gradientMask
-
-    return blendFilter.outputImage ?? image
+    
+    // Use bump distortion for more natural face shrinking effect
+    let bumpDistortion = CIFilter.bumpDistortion()
+    bumpDistortion.inputImage = image
+    bumpDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
+    bumpDistortion.radius = Float(faceRect.width * 0.5)
+    
+    // Negative scale for inward distortion (shrinking effect)
+    // Scale is inverted: 1.0 = no change, 0.65 = 35% smaller
+    let distortionScale = -(1.0 - scale) * 0.5
+    bumpDistortion.scale = Float(distortionScale)
+    
+    return bumpDistortion.outputImage ?? image
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {
@@ -63,27 +56,43 @@ class ImageWarper {
       y: originalSize.height / shoulderMask.extent.height
     ))
 
-    let faceAreaMask = createInverseFaceMask(faceRect: faceRect, imageSize: originalSize)
+    // Create smooth gradient mask for shoulders
+    let shoulderY = faceRect.maxY + faceRect.height * 0.5
+    
+    let linearGradient = CIFilter.linearGradient()
+    linearGradient.point0 = CGPoint(x: originalSize.width / 2, y: faceRect.maxY)
+    linearGradient.point1 = CGPoint(x: originalSize.width / 2, y: shoulderY)
+    linearGradient.color0 = CIColor(red: 0, green: 0, blue: 0)
+    linearGradient.color1 = CIColor(red: 1, green: 1, blue: 1)
+    
+    guard let gradientMask = linearGradient.outputImage else { return image }
+    
+    // Combine person mask with gradient
+    let multiplyFilter = CIFilter.multiplyCompositing()
+    multiplyFilter.inputImage = resizedMask
+    multiplyFilter.backgroundImage = gradientMask.cropped(to: CGRect(origin: .zero, size: originalSize))
+    
+    guard let shoulderMaskWithGradient = multiplyFilter.outputImage else { return image }
 
-    let combinedMask = CIFilter.multiplyCompositing()
-    combinedMask.inputImage = resizedMask
-    combinedMask.backgroundImage = faceAreaMask
-
-    guard let shoulderOnlyMask = combinedMask.outputImage else { return image }
-
-    let imageCenterX = image.extent.width / 2
-    let imageCenterY = image.extent.height / 2
-
-    let horizontalTransform = CGAffineTransform(translationX: -imageCenterX, y: -imageCenterY)
-      .scaledBy(x: scale, y: 1.0)
-      .translatedBy(x: imageCenterX, y: imageCenterY)
-
-    let scaledImage = image.transformed(by: horizontalTransform)
+    // Apply horizontal stretch using perspective transform
+    let perspectiveTransform = CIFilter.perspectiveTransform()
+    perspectiveTransform.inputImage = image
+    
+    let stretchAmount = (scale - 1.0) * 0.3
+    let leftEdge = -stretchAmount * originalSize.width
+    let rightEdge = originalSize.width + stretchAmount * originalSize.width
+    
+    perspectiveTransform.topLeft = CGPoint(x: leftEdge, y: 0)
+    perspectiveTransform.topRight = CGPoint(x: rightEdge, y: 0)
+    perspectiveTransform.bottomLeft = CGPoint(x: leftEdge, y: originalSize.height)
+    perspectiveTransform.bottomRight = CGPoint(x: rightEdge, y: originalSize.height)
+    
+    guard let stretchedImage = perspectiveTransform.outputImage?.cropped(to: image.extent) else { return image }
 
     let blendFilter = CIFilter.blendWithMask()
-    blendFilter.inputImage = scaledImage
+    blendFilter.inputImage = stretchedImage
     blendFilter.backgroundImage = image
-    blendFilter.maskImage = shoulderOnlyMask
+    blendFilter.maskImage = shoulderMaskWithGradient
 
     return blendFilter.outputImage ?? image
   }
