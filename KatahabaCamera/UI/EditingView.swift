@@ -10,10 +10,28 @@ struct EditingView: View {
         Color.black.ignoresSafeArea()
 
         if let image = viewModel.processedImage {
-          Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+          GeometryReader { geometry in
+            Image(uiImage: image)
+              .resizable()
+              .scaledToFit()
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+              .overlay(
+                // Show face effect range circle
+                viewModel.showRangeIndicator ? 
+                Circle()
+                  .stroke(Color.white.opacity(0.8), style: StrokeStyle(lineWidth: 2, dash: [5, 5]))
+                  .frame(width: viewModel.rangeIndicatorSize, height: viewModel.rangeIndicatorSize)
+                  .position(viewModel.rangeIndicatorPosition)
+                  .animation(.easeInOut(duration: 0.3), value: viewModel.rangeIndicatorSize)
+                  .overlay(
+                    Circle()
+                      .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                      .frame(width: viewModel.rangeIndicatorSize * 0.6, height: viewModel.rangeIndicatorSize * 0.6)
+                      .position(viewModel.rangeIndicatorPosition)
+                  )
+                : nil
+              )
+          }
         } else if let image = viewModel.capturedImage {
           Image(uiImage: image)
             .resizable()
@@ -62,10 +80,16 @@ struct EditingView: View {
                   .foregroundColor(.white.opacity(0.6))
                   .font(.caption)
 
-                Slider(value: $viewModel.faceEffectRange, in: 0.2...0.6) { _ in
-                  viewModel.updateFaceEffectRange(viewModel.faceEffectRange)
-                }
+                Slider(value: $viewModel.faceEffectRange, in: 0.2...0.6, onEditingChanged: { editing in
+                  viewModel.showRangeIndicator = editing
+                  if !editing {
+                    viewModel.updateFaceEffectRange(viewModel.faceEffectRange)
+                  }
+                })
                 .accentColor(.white)
+                .onChange(of: viewModel.faceEffectRange) { newValue in
+                  viewModel.updateRangeIndicator()
+                }
 
                 Image(systemName: "circle.dashed")
                   .foregroundColor(.white)

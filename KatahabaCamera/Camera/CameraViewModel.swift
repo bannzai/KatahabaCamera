@@ -15,11 +15,17 @@ class CameraViewModel: ObservableObject {
   @Published var isSaving = false
   @Published var showShareSheet = false
   @Published var permissionGranted = false
+  @Published var showRangeIndicator = false
+  @Published var rangeIndicatorSize: CGFloat = 100
+  @Published var rangeIndicatorPosition: CGPoint = .zero
 
   let cameraService = CameraService()
   private let faceDetector = FaceDetector()
   private let shoulderDetector = ShoulderDetector()
   private let imageWarper = ImageWarper()
+  
+  private var detectedFaceRect: CGRect?
+  private var imageDisplayScale: CGFloat = 1.0
 
   private var cancellables = Set<AnyCancellable>()
 
@@ -56,6 +62,7 @@ class CameraViewModel: ObservableObject {
         print("Shoulder mask generated")
         
         await MainActor.run {
+          self.detectedFaceRect = faceRect
           print("Applying warp with intensity: \(self.effectIntensity), range: \(self.faceEffectRange)")
           self.processedImage = imageWarper.warpImage(
             image,
@@ -64,6 +71,7 @@ class CameraViewModel: ObservableObject {
             intensity: CGFloat(effectIntensity),
             faceRange: CGFloat(faceEffectRange)
           )
+          self.updateRangeIndicator()
           
           if self.processedImage != nil {
             print("Image processing completed successfully")
@@ -87,9 +95,32 @@ class CameraViewModel: ObservableObject {
   
   func updateFaceEffectRange(_ range: Double) {
     faceEffectRange = range
+    updateRangeIndicator()
+    
     if let capturedImage = capturedImage {
       processImage(capturedImage)
     }
+  }
+  
+  private func updateRangeIndicator() {
+    guard let faceRect = detectedFaceRect,
+          let image = capturedImage else { return }
+    
+    // Calculate display scale based on image aspect ratio
+    // This is simplified - in real app would need to match image display in EditingView
+    let displayScale = min(UIScreen.main.bounds.width / image.size.width,
+                          UIScreen.main.bounds.height / image.size.height)
+    
+    imageDisplayScale = displayScale
+    
+    // Convert face rect to screen coordinates
+    let screenFaceCenter = CGPoint(
+      x: faceRect.midX * displayScale,
+      y: faceRect.midY * displayScale
+    )
+    
+    rangeIndicatorPosition = screenFaceCenter
+    rangeIndicatorSize = faceRect.width * displayScale * CGFloat(faceEffectRange * 2)
   }
 
   func savePhoto() {

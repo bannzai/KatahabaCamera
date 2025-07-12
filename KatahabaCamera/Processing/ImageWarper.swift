@@ -49,25 +49,23 @@ class ImageWarper {
     
     print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale), range: \(range)")
     
-    // Apply simple pinch distortion with proper bounds checking
-    let pinchDistortion = CIFilter.pinchDistortion()
-    pinchDistortion.inputImage = image
-    pinchDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
+    // Use bump distortion with negative scale for shrinking
+    let bumpDistortion = CIFilter.bumpDistortion()
+    bumpDistortion.inputImage = image
+    bumpDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
     
-    // Use the range parameter for radius (clamped between 0.2 and 0.6)
+    // Use the range parameter for radius
     let clampedRange = max(0.2, min(0.6, range))
-    pinchDistortion.radius = Float(faceRect.width * clampedRange)
+    bumpDistortion.radius = Float(faceRect.width * clampedRange)
     
-    // TODO: [AdjustmentDistortion] Adjust scale multiplier (1.5 = moderate effect)
-    let pinchScale = (1.0 - scale) * 1.5
-    pinchDistortion.scale = Float(pinchScale)
+    // Negative scale for shrinking effect (bump inward)
+    // Adjust the scale to be more pronounced
+    let bumpScale = -(1.0 - scale) * faceRect.width * 0.5
+    bumpDistortion.scale = Float(bumpScale)
     
-    print("Pinch distortion - radius: \(pinchDistortion.radius), scale: \(pinchScale)")
+    print("Bump distortion - radius: \(bumpDistortion.radius), scale: \(bumpScale)")
     
-    guard let distorted = pinchDistortion.outputImage else { return image }
-    
-    // Make sure the output has the same extent as input
-    return distorted.cropped(to: image.extent)
+    return bumpDistortion.outputImage ?? image
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {
