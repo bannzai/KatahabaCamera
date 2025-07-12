@@ -41,59 +41,55 @@ class ImageWarper {
     
     print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale)")
     
-    // Create a crop region that's larger than the face to have room for distortion
-    let cropPadding: CGFloat = 1.5
-    let cropRect = CGRect(
-      x: faceRect.origin.x - faceRect.width * (cropPadding - 1.0) / 2.0,
-      y: faceRect.origin.y - faceRect.height * (cropPadding - 1.0) / 2.0,
-      width: faceRect.width * cropPadding,
-      height: faceRect.height * cropPadding
-    ).intersection(image.extent)
+    // Use torus lens distortion for more natural face shrinking
+    let torusDistortion = CIFilter.torusLensDistortion()
+    torusDistortion.inputImage = image
+    torusDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
+    // TODO: [AdjustmentDistortion] Adjust radius (0.35 = 35% of face width)
+    torusDistortion.radius = Float(faceRect.width * 0.35)
+    // TODO: [AdjustmentDistortion] Adjust width (0.8 = 80% of radius)
+    torusDistortion.width = Float(faceRect.width * 0.35 * 0.8)
+    // TODO: [AdjustmentDistortion] Adjust refraction (-1.5 = inward distortion)
+    torusDistortion.refraction = -1.5
     
-    // Crop the face area
-    let croppedFaceImage = image.cropped(to: cropRect)
+    if let distorted = torusDistortion.outputImage {
+      print("Torus distortion applied successfully")
+      return distorted
+    }
     
-    // Apply pinch distortion to the cropped area only
-    let pinchDistortion = CIFilter.pinchDistortion()
-    pinchDistortion.inputImage = croppedFaceImage
-    pinchDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    // TODO: [AdjustmentDistortion] Adjust radius multiplier (0.4 = 40% of face width)
-    pinchDistortion.radius = Float(faceRect.width * 0.4)
+    // Fallback to pinch distortion if torus fails
+    print("Falling back to pinch distortion")
     
-    // TODO: [AdjustmentDistortion] Adjust scale multiplier (2.5 = moderate, 3.5 = strong effect)
-    let pinchScale = (1.0 - scale) * 2.5
-    pinchDistortion.scale = Float(pinchScale)
-    
-    print("Pinch distortion - radius: \(pinchDistortion.radius), scale: \(pinchScale)")
-    
-    guard let distortedCrop = pinchDistortion.outputImage else { return image }
-    
-    // Create elliptical gradient mask for smooth blending
+    // Create smooth gradient mask first
     let radialGradient = CIFilter.radialGradient()
     radialGradient.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    // TODO: [AdjustmentDistortion] Adjust gradient inner radius (0.2 = 20% of face width)
-    radialGradient.radius0 = Float(faceRect.width * 0.2)
-    // TODO: [AdjustmentDistortion] Adjust gradient outer radius (0.5 = 50% of face width)
-    radialGradient.radius1 = Float(faceRect.width * 0.5)
-    radialGradient.color0 = CIColor(red: 1, green: 1, blue: 1, alpha: 1)
-    radialGradient.color1 = CIColor(red: 0, green: 0, blue: 0, alpha: 0)
+    radialGradient.radius0 = Float(faceRect.width * 0.1)
+    radialGradient.radius1 = Float(faceRect.width * 0.4)
+    radialGradient.color0 = CIColor(red: 1, green: 1, blue: 1)
+    radialGradient.color1 = CIColor(red: 0, green: 0, blue: 0)
     
-    guard let gradientMask = radialGradient.outputImage?.cropped(to: cropRect) else { return image }
+    guard let mask = radialGradient.outputImage?.cropped(to: image.extent) else { return image }
     
-    // Blend the distorted crop with the original crop using the gradient
-    let blendCrop = CIFilter.blendWithMask()
-    blendCrop.inputImage = distortedCrop
-    blendCrop.backgroundImage = croppedFaceImage
-    blendCrop.maskImage = gradientMask
+    // Apply localized pinch
+    let pinchDistortion = CIFilter.pinchDistortion()
+    pinchDistortion.inputImage = image
+    pinchDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
+    // TODO: [AdjustmentDistortion] Adjust radius multiplier (0.3 = 30% of face width)
+    pinchDistortion.radius = Float(faceRect.width * 0.3)
     
-    guard let blendedCrop = blendCrop.outputImage else { return image }
+    // TODO: [AdjustmentDistortion] Adjust scale multiplier (1.8 = moderate effect)
+    let pinchScale = (1.0 - scale) * 1.8
+    pinchDistortion.scale = Float(pinchScale)
     
-    // Composite the blended crop back onto the original image
-    let compositor = CIFilter.sourceOverCompositing()
-    compositor.inputImage = blendedCrop
-    compositor.backgroundImage = image
+    guard let distorted = pinchDistortion.outputImage else { return image }
     
-    return compositor.outputImage ?? image
+    // Blend with mask
+    let blend = CIFilter.blendWithMask()
+    blend.inputImage = distorted
+    blend.backgroundImage = image
+    blend.maskImage = mask
+    
+    return blend.outputImage ?? image
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {
