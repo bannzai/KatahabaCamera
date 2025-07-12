@@ -45,18 +45,39 @@ class ImageWarper {
     let pinchDistortion = CIFilter.pinchDistortion()
     pinchDistortion.inputImage = image
     pinchDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    // TODO: [AdjustmentDistortion] Adjust radius multiplier (0.8 = 80% of face width)
-    pinchDistortion.radius = Float(faceRect.width * 0.8)
+    // TODO: [AdjustmentDistortion] Adjust radius multiplier (0.5 = 50% of face width)
+    // Reduced radius to limit effect to face area only
+    pinchDistortion.radius = Float(faceRect.width * 0.5)
     
     // Positive scale for pinch effect (0.65 means 35% smaller)
     // Scale needs to be inverted: smaller face = higher pinch value
-    // TODO: [AdjustmentDistortion] Adjust scale multiplier (1.5 = moderate, 2.0 = strong effect)
-    let pinchScale = (1.0 - scale) * 1.5
+    // TODO: [AdjustmentDistortion] Adjust scale multiplier (2.0 = moderate, 3.0 = strong effect)
+    let pinchScale = (1.0 - scale) * 2.0
     pinchDistortion.scale = Float(pinchScale)
     
     print("Pinch distortion - radius: \(pinchDistortion.radius), scale: \(pinchScale)")
     
-    return pinchDistortion.outputImage ?? image
+    guard let distortedImage = pinchDistortion.outputImage else { return image }
+    
+    // Create a radial gradient mask to limit the effect to face area
+    let radialGradient = CIFilter.radialGradient()
+    radialGradient.center = CGPoint(x: faceCenterX, y: faceCenterY)
+    // TODO: [AdjustmentDistortion] Adjust gradient inner radius (0.3 = 30% of face width)
+    radialGradient.radius0 = Float(faceRect.width * 0.3)
+    // TODO: [AdjustmentDistortion] Adjust gradient outer radius (0.6 = 60% of face width)
+    radialGradient.radius1 = Float(faceRect.width * 0.6)
+    radialGradient.color0 = CIColor(red: 1, green: 1, blue: 1)
+    radialGradient.color1 = CIColor(red: 0, green: 0, blue: 0)
+    
+    guard let gradientMask = radialGradient.outputImage?.cropped(to: image.extent) else { return distortedImage }
+    
+    // Blend the distorted image with original using the gradient mask
+    let blendFilter = CIFilter.blendWithMask()
+    blendFilter.inputImage = distortedImage
+    blendFilter.backgroundImage = image
+    blendFilter.maskImage = gradientMask
+    
+    return blendFilter.outputImage ?? image
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {

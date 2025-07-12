@@ -34,7 +34,7 @@ actor FaceDetector {
         
         // Expand face rect to include more area around the face
         // TODO: [AdjustmentDistortion] Adjust expansion factor (1.0 = original size, 2.0 = double size)
-        let expansionFactor: CGFloat = 1.5  // 50% larger
+        let expansionFactor: CGFloat = 1.2  // 20% larger
         let widthExpansion = faceRect.width * (expansionFactor - 1.0) / 2.0
         let heightExpansion = faceRect.height * (expansionFactor - 1.0) / 2.0
         
