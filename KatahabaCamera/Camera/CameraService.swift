@@ -103,30 +103,38 @@ class CameraService: NSObject, ObservableObject {
 
 extension CameraService: AVCapturePhotoCaptureDelegate {
   func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-    guard let data = photo.fileDataRepresentation(),
-          let image = UIImage(data: data) else { return }
+    guard let data = photo.fileDataRepresentation() else { return }
     
-    // Mirror the image for front camera
-    let mirroredImage: UIImage
-    if let cgImage = image.cgImage {
-      let context = CIContext()
-      let ciImage = CIImage(cgImage: cgImage)
-      
-      // Apply horizontal flip for front camera
-      let flippedImage = ciImage.transformed(by: CGAffineTransform(scaleX: -1, y: 1))
-        .transformed(by: CGAffineTransform(translationX: ciImage.extent.width, y: 0))
-      
-      if let outputCGImage = context.createCGImage(flippedImage, from: ciImage.extent) {
-        mirroredImage = UIImage(cgImage: outputCGImage, scale: image.scale, orientation: .up)
-      } else {
-        mirroredImage = image
-      }
-    } else {
-      mirroredImage = image
+    // Create UIImage with proper orientation
+    guard let originalImage = UIImage(data: data) else { return }
+    
+    // Fix orientation and mirror for front camera
+    guard let cgImage = originalImage.cgImage else { return }
+    
+    // Create properly oriented image
+    let orientedImage: UIImage
+    
+    // Debug print orientation
+    print("Original image orientation: \(originalImage.imageOrientation.rawValue)")
+    
+    // For front camera, we need to handle both orientation and mirroring
+    switch originalImage.imageOrientation {
+    case .right:
+      // Most common case for front camera in portrait
+      orientedImage = UIImage(cgImage: cgImage, scale: originalImage.scale, orientation: .leftMirrored)
+    case .left:
+      orientedImage = UIImage(cgImage: cgImage, scale: originalImage.scale, orientation: .rightMirrored)
+    case .up:
+      orientedImage = UIImage(cgImage: cgImage, scale: originalImage.scale, orientation: .upMirrored)
+    case .down:
+      orientedImage = UIImage(cgImage: cgImage, scale: originalImage.scale, orientation: .downMirrored)
+    default:
+      // Already mirrored orientations
+      orientedImage = originalImage
     }
 
     Task { @MainActor in
-      self.photo = mirroredImage
+      self.photo = orientedImage
     }
   }
 }

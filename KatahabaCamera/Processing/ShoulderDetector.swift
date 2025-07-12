@@ -33,13 +33,29 @@ actor ShoulderDetector {
 
       request.qualityLevel = .accurate
 
-      let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+      // Create handler with proper orientation
+      let orientation = self.cgImageOrientation(from: image.imageOrientation)
+      let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
 
       do {
         try handler.perform([request])
       } catch {
         continuation.resume(throwing: DetectionError.segmentationFailed)
       }
+    }
+  }
+  
+  private func cgImageOrientation(from uiOrientation: UIImage.Orientation) -> CGImagePropertyOrientation {
+    switch uiOrientation {
+    case .up: return .up
+    case .down: return .down
+    case .left: return .left
+    case .right: return .right
+    case .upMirrored: return .upMirrored
+    case .downMirrored: return .downMirrored
+    case .leftMirrored: return .leftMirrored
+    case .rightMirrored: return .rightMirrored
+    @unknown default: return .up
     }
   }
 }

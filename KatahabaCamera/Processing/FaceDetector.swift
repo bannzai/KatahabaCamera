@@ -27,12 +27,18 @@ actor FaceDetector {
           return
         }
 
+        print("Face observation boundingBox: \(face.boundingBox)")
+        
         let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
-        let faceRect = self.convertRect(face.boundingBox, toImageSize: imageSize)
+        let faceRect = self.convertRect(face.boundingBox, toImageSize: imageSize, orientation: image.imageOrientation)
+        
+        print("Converted face rect: \(faceRect)")
         continuation.resume(returning: faceRect)
       }
 
-      let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+      // Create handler with proper orientation
+      let orientation = self.cgImageOrientation(from: image.imageOrientation)
+      let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
 
       do {
         try handler.perform([request])
@@ -42,12 +48,26 @@ actor FaceDetector {
     }
   }
 
-  private func convertRect(_ rect: CGRect, toImageSize imageSize: CGSize) -> CGRect {
+  private func convertRect(_ rect: CGRect, toImageSize imageSize: CGSize, orientation: UIImage.Orientation) -> CGRect {
     let x = rect.origin.x * imageSize.width
     let y = (1 - rect.origin.y - rect.height) * imageSize.height
     let width = rect.width * imageSize.width
     let height = rect.height * imageSize.height
 
     return CGRect(x: x, y: y, width: width, height: height)
+  }
+  
+  private func cgImageOrientation(from uiOrientation: UIImage.Orientation) -> CGImagePropertyOrientation {
+    switch uiOrientation {
+    case .up: return .up
+    case .down: return .down
+    case .left: return .left
+    case .right: return .right
+    case .upMirrored: return .upMirrored
+    case .downMirrored: return .downMirrored
+    case .leftMirrored: return .leftMirrored
+    case .rightMirrored: return .rightMirrored
+    @unknown default: return .up
+    }
   }
 }

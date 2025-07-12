@@ -38,18 +38,22 @@ class ImageWarper {
     let faceCenterX = faceRect.midX
     let faceCenterY = faceRect.midY
     
-    // Use bump distortion for more natural face shrinking effect
-    let bumpDistortion = CIFilter.bumpDistortion()
-    bumpDistortion.inputImage = image
-    bumpDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    bumpDistortion.radius = Float(faceRect.width * 0.5)
+    print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale)")
     
-    // Negative scale for inward distortion (shrinking effect)
-    // Scale is inverted: 1.0 = no change, 0.65 = 35% smaller
-    let distortionScale = -(1.0 - scale) * 0.5
-    bumpDistortion.scale = Float(distortionScale)
+    // Use pinch distortion for face shrinking effect
+    let pinchDistortion = CIFilter.pinchDistortion()
+    pinchDistortion.inputImage = image
+    pinchDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
+    pinchDistortion.radius = Float(faceRect.width * 0.6)
     
-    return bumpDistortion.outputImage ?? image
+    // Positive scale for pinch effect (0.65 means 35% smaller)
+    // Scale needs to be inverted: smaller face = higher pinch value
+    let pinchScale = (1.0 - scale) * 2.0 // Amplify the effect
+    pinchDistortion.scale = Float(pinchScale)
+    
+    print("Pinch distortion - radius: \(pinchDistortion.radius), scale: \(pinchScale)")
+    
+    return pinchDistortion.outputImage ?? image
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {

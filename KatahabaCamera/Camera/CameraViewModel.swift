@@ -44,16 +44,26 @@ class CameraViewModel: ObservableObject {
   func processImage(_ image: UIImage) {
     Task {
       do {
+        print("Processing image - size: \(image.size), orientation: \(image.imageOrientation.rawValue)")
+        
         let faceRect = try await faceDetector.detectFace(in: image)
+        print("Face detected at: \(faceRect)")
+        
         let shoulderMask = try await shoulderDetector.detectShoulders(in: image)
-
+        print("Shoulder mask generated")
+        
         await MainActor.run {
+          print("Applying warp with intensity: \(self.effectIntensity)")
           self.processedImage = imageWarper.warpImage(
             image,
             faceRect: faceRect,
             shoulderMask: shoulderMask,
             intensity: CGFloat(effectIntensity)
           )
+          
+          if self.processedImage != nil {
+            print("Image processing completed successfully")
+          }
         }
       } catch {
         print("Image processing error: \(error)")
