@@ -37,24 +37,41 @@ struct CameraView: View {
     .sheet(isPresented: $viewModel.isShowingEditView) {
       EditingView(viewModel: viewModel)
     }
+    .onAppear {
+      viewModel.cameraService.startSession()
+    }
+    .onDisappear {
+      viewModel.cameraService.stopSession()
+    }
   }
 }
 
 struct CameraPreviewView: UIViewRepresentable {
   let cameraService: CameraService
 
+  class PreviewView: UIView {
+    override func layoutSubviews() {
+      super.layoutSubviews()
+      layer.sublayers?.forEach { sublayer in
+        sublayer.frame = bounds
+      }
+    }
+  }
+
   func makeUIView(context: Context) -> UIView {
-    let view = UIView(frame: .zero)
+    let view = PreviewView()
+    view.backgroundColor = .black
+    
     let previewLayer = cameraService.makePreviewLayer()
     previewLayer.frame = view.bounds
+    previewLayer.videoGravity = .resizeAspectFill
     view.layer.addSublayer(previewLayer)
+    
     return view
   }
 
   func updateUIView(_ uiView: UIView, context: Context) {
-    if let layer = uiView.layer.sublayers?.first(where: { $0 is AVCaptureVideoPreviewLayer }) as? AVCaptureVideoPreviewLayer {
-      layer.frame = uiView.bounds
-    }
+    // Layout is handled in PreviewView.layoutSubviews()
   }
 }
 
