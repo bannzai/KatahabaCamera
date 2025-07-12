@@ -102,7 +102,7 @@ class CameraViewModel: ObservableObject {
     }
   }
   
-  private func updateRangeIndicator() {
+  func updateRangeIndicator() {
     guard let faceRect = detectedFaceRect,
           let image = capturedImage else { return }
     
