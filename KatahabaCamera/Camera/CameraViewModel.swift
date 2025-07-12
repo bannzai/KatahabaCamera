@@ -26,6 +26,9 @@ class CameraViewModel: ObservableObject {
   
   private var detectedFaceRect: CGRect?
   private var imageDisplayScale: CGFloat = 1.0
+  private var displaySize: CGSize = .zero
+  private var displayOffset: CGPoint = .zero
+  private var imageSize: CGSize = .zero
 
   private var cancellables = Set<AnyCancellable>()
 
@@ -104,23 +107,26 @@ class CameraViewModel: ObservableObject {
   
   func updateRangeIndicator() {
     guard let faceRect = detectedFaceRect,
-          let image = capturedImage else { return }
+          displaySize.width > 0 else { return }
     
-    // Calculate display scale based on image aspect ratio
-    // This is simplified - in real app would need to match image display in EditingView
-    let displayScale = min(UIScreen.main.bounds.width / image.size.width,
-                          UIScreen.main.bounds.height / image.size.height)
-    
-    imageDisplayScale = displayScale
+    // Calculate scale factor
+    let scale = displaySize.width / imageSize.width
     
     // Convert face rect to screen coordinates
     let screenFaceCenter = CGPoint(
-      x: faceRect.midX * displayScale,
-      y: faceRect.midY * displayScale
+      x: displayOffset.x + faceRect.midX * scale,
+      y: displayOffset.y + faceRect.midY * scale
     )
     
     rangeIndicatorPosition = screenFaceCenter
-    rangeIndicatorSize = faceRect.width * displayScale * CGFloat(faceEffectRange * 2)
+    rangeIndicatorSize = faceRect.width * scale * CGFloat(faceEffectRange * 2)
+  }
+  
+  func updateDisplayInfo(displaySize: CGSize, displayOffset: CGPoint, imageSize: CGSize) {
+    self.displaySize = displaySize
+    self.displayOffset = displayOffset
+    self.imageSize = imageSize
+    updateRangeIndicator()
   }
 
   func savePhoto() {

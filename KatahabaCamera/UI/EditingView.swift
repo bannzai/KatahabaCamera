@@ -15,6 +15,39 @@ struct EditingView: View {
               .resizable()
               .scaledToFit()
               .frame(maxWidth: .infinity, maxHeight: .infinity)
+              .background(
+                GeometryReader { imageGeometry in
+                  Color.clear
+                    .onAppear {
+                      // Calculate actual image display frame
+                      let imageSize = image.size
+                      let containerSize = geometry.size
+                      let imageAspect = imageSize.width / imageSize.height
+                      let containerAspect = containerSize.width / containerSize.height
+                      
+                      var displayWidth: CGFloat
+                      var displayHeight: CGFloat
+                      var offsetX: CGFloat = 0
+                      var offsetY: CGFloat = 0
+                      
+                      if imageAspect > containerAspect {
+                        displayWidth = containerSize.width
+                        displayHeight = containerSize.width / imageAspect
+                        offsetY = (containerSize.height - displayHeight) / 2
+                      } else {
+                        displayHeight = containerSize.height
+                        displayWidth = containerSize.height * imageAspect
+                        offsetX = (containerSize.width - displayWidth) / 2
+                      }
+                      
+                      viewModel.updateDisplayInfo(
+                        displaySize: CGSize(width: displayWidth, height: displayHeight),
+                        displayOffset: CGPoint(x: offsetX, y: offsetY),
+                        imageSize: imageSize
+                      )
+                    }
+                }
+              )
               .overlay(
                 // Show face effect range circle
                 viewModel.showRangeIndicator ? 

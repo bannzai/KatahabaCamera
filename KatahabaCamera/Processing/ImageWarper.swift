@@ -49,23 +49,45 @@ class ImageWarper {
     
     print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale), range: \(range)")
     
-    // Use bump distortion with negative scale for shrinking
-    let bumpDistortion = CIFilter.bumpDistortion()
-    bumpDistortion.inputImage = image
-    bumpDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    
-    // Use the range parameter for radius
+    // Use a combination of scaling and masking for better face shrinking
     let clampedRange = max(0.2, min(0.6, range))
-    bumpDistortion.radius = Float(faceRect.width * clampedRange)
+    let effectRadius = faceRect.width * clampedRange
     
-    // Negative scale for shrinking effect (bump inward)
-    // Adjust the scale to be more pronounced
-    let bumpScale = -(1.0 - scale) * faceRect.width * 0.5
-    bumpDistortion.scale = Float(bumpScale)
+    // Create a smaller version of the entire image
+    let scaleTransform = CGAffineTransform(scaleX: scale, y: scale)
+    let scaledImage = image.transformed(by: scaleTransform)
     
-    print("Bump distortion - radius: \(bumpDistortion.radius), scale: \(bumpScale)")
+    // Calculate offset to center the scaled face at the original position
+    let offsetX = faceCenterX * (1 - scale)
+    let offsetY = faceCenterY * (1 - scale)
+    let translationTransform = CGAffineTransform(translationX: offsetX, y: offsetY)
+    let positionedScaledImage = scaledImage.transformed(by: translationTransform)
     
-    return bumpDistortion.outputImage ?? image
+    // Create a radial gradient mask for smooth blending
+    let radialGradient = CIFilter.radialGradient()
+    radialGradient.center = CGPoint(x: faceCenterX, y: faceCenterY)
+    radialGradient.radius0 = Float(effectRadius * 0.5)
+    radialGradient.radius1 = Float(effectRadius)
+    radialGradient.color0 = CIColor.white
+    radialGradient.color1 = CIColor.black
+    
+    guard let gradientMask = radialGradient.outputImage?.cropped(to: image.extent) else {
+      // Fallback to bump distortion
+      let bump = CIFilter.bumpDistortion()
+      bump.inputImage = image
+      bump.center = CGPoint(x: faceCenterX, y: faceCenterY)
+      bump.radius = Float(effectRadius)
+      bump.scale = Float(scale - 1.0)
+      return bump.outputImage ?? image
+    }
+    
+    // Blend the scaled image with the original using the gradient mask
+    let blendFilter = CIFilter.blendWithMask()
+    blendFilter.inputImage = positionedScaledImage.cropped(to: image.extent)
+    blendFilter.backgroundImage = image
+    blendFilter.maskImage = gradientMask
+    
+    return blendFilter.outputImage ?? image
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {
