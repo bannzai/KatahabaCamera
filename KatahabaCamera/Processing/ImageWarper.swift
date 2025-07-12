@@ -9,6 +9,7 @@ class ImageWarper {
   func warpImage(_ image: UIImage, faceRect: CGRect, shoulderMask: CIImage, intensity: CGFloat) -> UIImage? {
     guard let inputCIImage = CIImage(image: image) else { return nil }
 
+    // TODO: [AdjustmentDistortion] Base scale values (face: 0.65 = 35% smaller, shoulder: 1.25 = 25% wider)
     let baseFaceScale: CGFloat = 0.65
     let baseShoulderScale: CGFloat = 1.25
 
@@ -44,12 +45,13 @@ class ImageWarper {
     let pinchDistortion = CIFilter.pinchDistortion()
     pinchDistortion.inputImage = image
     pinchDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    // Increase radius to cover more of the face area smoothly
+    // TODO: [AdjustmentDistortion] Adjust radius multiplier (0.8 = 80% of face width)
     pinchDistortion.radius = Float(faceRect.width * 0.8)
     
     // Positive scale for pinch effect (0.65 means 35% smaller)
     // Scale needs to be inverted: smaller face = higher pinch value
-    let pinchScale = (1.0 - scale) * 1.5 // Reduced from 2.0 for more natural effect
+    // TODO: [AdjustmentDistortion] Adjust scale multiplier (1.5 = moderate, 2.0 = strong effect)
+    let pinchScale = (1.0 - scale) * 1.5
     pinchDistortion.scale = Float(pinchScale)
     
     print("Pinch distortion - radius: \(pinchDistortion.radius), scale: \(pinchScale)")
@@ -64,6 +66,7 @@ class ImageWarper {
     ))
 
     // Create smooth gradient mask for shoulders
+    // TODO: [AdjustmentDistortion] Adjust shoulder offset from face (0.5 = half face height below face)
     let shoulderY = faceRect.maxY + faceRect.height * 0.5
     
     let linearGradient = CIFilter.linearGradient()

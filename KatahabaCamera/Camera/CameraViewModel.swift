@@ -8,6 +8,7 @@ class CameraViewModel: ObservableObject {
   @Published var capturedImage: UIImage?
   @Published var processedImage: UIImage?
   @Published var isShowingEditView = false
+  // TODO: [AdjustmentDistortion] Default effect intensity (0.0 = no effect, 1.0 = maximum effect)
   @Published var effectIntensity: Double = 0.7
   @Published var isSaving = false
   @Published var showShareSheet = false
