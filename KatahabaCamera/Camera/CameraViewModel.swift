@@ -10,6 +10,8 @@ class CameraViewModel: ObservableObject {
   @Published var isShowingEditView = false
   // TODO: [AdjustmentDistortion] Default effect intensity (0.0 = no effect, 1.0 = maximum effect)
   @Published var effectIntensity: Double = 0.7
+  // TODO: [AdjustmentDistortion] Default face effect range (0.2 = small area, 0.6 = large area)
+  @Published var faceEffectRange: Double = 0.35
   @Published var isSaving = false
   @Published var showShareSheet = false
   @Published var permissionGranted = false
@@ -54,12 +56,13 @@ class CameraViewModel: ObservableObject {
         print("Shoulder mask generated")
         
         await MainActor.run {
-          print("Applying warp with intensity: \(self.effectIntensity)")
+          print("Applying warp with intensity: \(self.effectIntensity), range: \(self.faceEffectRange)")
           self.processedImage = imageWarper.warpImage(
             image,
             faceRect: faceRect,
             shoulderMask: shoulderMask,
-            intensity: CGFloat(effectIntensity)
+            intensity: CGFloat(effectIntensity),
+            faceRange: CGFloat(faceEffectRange)
           )
           
           if self.processedImage != nil {
@@ -77,6 +80,13 @@ class CameraViewModel: ObservableObject {
 
   func updateEffectIntensity(_ intensity: Double) {
     effectIntensity = intensity
+    if let capturedImage = capturedImage {
+      processImage(capturedImage)
+    }
+  }
+  
+  func updateFaceEffectRange(_ range: Double) {
+    faceEffectRange = range
     if let capturedImage = capturedImage {
       processImage(capturedImage)
     }

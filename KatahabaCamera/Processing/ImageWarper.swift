@@ -6,7 +6,7 @@ import CoreImage.CIFilterBuiltins
 class ImageWarper {
   private let context = CIContext()
 
-  func warpImage(_ image: UIImage, faceRect: CGRect, shoulderMask: CIImage, intensity: CGFloat) -> UIImage? {
+  func warpImage(_ image: UIImage, faceRect: CGRect, shoulderMask: CIImage, intensity: CGFloat, faceRange: CGFloat = 0.35) -> UIImage? {
     guard let inputCIImage = CIImage(image: image) else { return nil }
 
     // TODO: [AdjustmentDistortion] Base scale values (face: 0.65 = 35% smaller, shoulder: 1.25 = 25% wider)
@@ -16,7 +16,7 @@ class ImageWarper {
     let faceScale = 1.0 - (1.0 - baseFaceScale) * intensity
     let shoulderScale = 1.0 + (baseShoulderScale - 1.0) * intensity
 
-    let scaledFaceImage = applyFaceScaling(to: inputCIImage, faceRect: faceRect, scale: faceScale)
+    let scaledFaceImage = applyFaceScaling(to: inputCIImage, faceRect: faceRect, scale: faceScale, range: faceRange)
 
     let finalImage = applyShoulderScaling(
       to: scaledFaceImage,
@@ -35,61 +35,31 @@ class ImageWarper {
     return UIImage(cgImage: outputCGImage, scale: image.scale, orientation: image.imageOrientation)
   }
 
-  private func applyFaceScaling(to image: CIImage, faceRect: CGRect, scale: CGFloat) -> CIImage {
+  private func applyFaceScaling(to image: CIImage, faceRect: CGRect, scale: CGFloat, range: CGFloat) -> CIImage {
     let faceCenterX = faceRect.midX
     let faceCenterY = faceRect.midY
     
-    print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale)")
+    print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale), range: \(range)")
     
-    // Use torus lens distortion for more natural face shrinking
-    let torusDistortion = CIFilter.torusLensDistortion()
-    torusDistortion.inputImage = image
-    torusDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    // TODO: [AdjustmentDistortion] Adjust radius (0.35 = 35% of face width)
-    torusDistortion.radius = Float(faceRect.width * 0.35)
-    // TODO: [AdjustmentDistortion] Adjust width (0.8 = 80% of radius)
-    torusDistortion.width = Float(faceRect.width * 0.35 * 0.8)
-    // TODO: [AdjustmentDistortion] Adjust refraction (-1.5 = inward distortion)
-    torusDistortion.refraction = -1.5
-    
-    if let distorted = torusDistortion.outputImage {
-      print("Torus distortion applied successfully")
-      return distorted
-    }
-    
-    // Fallback to pinch distortion if torus fails
-    print("Falling back to pinch distortion")
-    
-    // Create smooth gradient mask first
-    let radialGradient = CIFilter.radialGradient()
-    radialGradient.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    radialGradient.radius0 = Float(faceRect.width * 0.1)
-    radialGradient.radius1 = Float(faceRect.width * 0.4)
-    radialGradient.color0 = CIColor(red: 1, green: 1, blue: 1)
-    radialGradient.color1 = CIColor(red: 0, green: 0, blue: 0)
-    
-    guard let mask = radialGradient.outputImage?.cropped(to: image.extent) else { return image }
-    
-    // Apply localized pinch
+    // Apply simple pinch distortion with proper bounds checking
     let pinchDistortion = CIFilter.pinchDistortion()
     pinchDistortion.inputImage = image
     pinchDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    // TODO: [AdjustmentDistortion] Adjust radius multiplier (0.3 = 30% of face width)
-    pinchDistortion.radius = Float(faceRect.width * 0.3)
     
-    // TODO: [AdjustmentDistortion] Adjust scale multiplier (1.8 = moderate effect)
-    let pinchScale = (1.0 - scale) * 1.8
+    // Use the range parameter for radius (clamped between 0.2 and 0.6)
+    let clampedRange = max(0.2, min(0.6, range))
+    pinchDistortion.radius = Float(faceRect.width * clampedRange)
+    
+    // TODO: [AdjustmentDistortion] Adjust scale multiplier (1.5 = moderate effect)
+    let pinchScale = (1.0 - scale) * 1.5
     pinchDistortion.scale = Float(pinchScale)
+    
+    print("Pinch distortion - radius: \(pinchDistortion.radius), scale: \(pinchScale)")
     
     guard let distorted = pinchDistortion.outputImage else { return image }
     
-    // Blend with mask
-    let blend = CIFilter.blendWithMask()
-    blend.inputImage = distorted
-    blend.backgroundImage = image
-    blend.maskImage = mask
-    
-    return blend.outputImage ?? image
+    // Make sure the output has the same extent as input
+    return distorted.cropped(to: image.extent)
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {
@@ -120,19 +90,36 @@ class ImageWarper {
     // Apply horizontal stretch using affine transform
     // Center the transform to avoid displacement
     let centerX = image.extent.midX
-    let transform = CGAffineTransform(translationX: -centerX, y: 0)
-      .scaledBy(x: scale, y: 1.0)
-      .translatedBy(x: centerX, y: 0)
+    let centerY = image.extent.midY
     
+    // Create a transform that scales from the center
+    let transform = CGAffineTransform(translationX: -centerX, y: -centerY)
+      .scaledBy(x: scale, y: 1.0)
+      .translatedBy(x: centerX / scale, y: centerY)
+    
+    // Ensure the transformed image fits within the original bounds
+    let originalExtent = image.extent
     let stretchedImage = image.transformed(by: transform)
-      .cropped(to: image.extent)
+    
+    // Calculate the cropping rect to center the stretched image
+    let stretchedExtent = stretchedImage.extent
+    let xOffset = (stretchedExtent.width - originalExtent.width) / 2
+    let cropRect = CGRect(
+      x: stretchedExtent.origin.x + xOffset,
+      y: stretchedExtent.origin.y,
+      width: originalExtent.width,
+      height: originalExtent.height
+    )
+    
+    let croppedStretchedImage = stretchedImage.cropped(to: cropRect)
+      .transformed(by: CGAffineTransform(translationX: -cropRect.origin.x, y: -cropRect.origin.y))
 
     let blendFilter = CIFilter.blendWithMask()
-    blendFilter.inputImage = stretchedImage
+    blendFilter.inputImage = croppedStretchedImage
     blendFilter.backgroundImage = image
     blendFilter.maskImage = shoulderMaskWithGradient
 
-    return blendFilter.outputImage?.cropped(to: image.extent) ?? image
+    return blendFilter.outputImage?.cropped(to: originalExtent) ?? image
   }
 
   private func createInverseFaceMask(faceRect: CGRect, imageSize: CGSize) -> CIImage {

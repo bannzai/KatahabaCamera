@@ -51,6 +51,28 @@ struct EditingView: View {
               }
             }
             .padding(.horizontal)
+            
+            VStack(alignment: .leading, spacing: 8) {
+              Text("Face Effect Range")
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.8))
+
+              HStack {
+                Image(systemName: "circle.dashed")
+                  .foregroundColor(.white.opacity(0.6))
+                  .font(.caption)
+
+                Slider(value: $viewModel.faceEffectRange, in: 0.2...0.6) { _ in
+                  viewModel.updateFaceEffectRange(viewModel.faceEffectRange)
+                }
+                .accentColor(.white)
+
+                Image(systemName: "circle.dashed")
+                  .foregroundColor(.white)
+                  .font(.title3)
+              }
+            }
+            .padding(.horizontal)
 
             HStack(spacing: 30) {
               Button(action: {
