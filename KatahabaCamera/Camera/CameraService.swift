@@ -105,9 +105,28 @@ extension CameraService: AVCapturePhotoCaptureDelegate {
   func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
     guard let data = photo.fileDataRepresentation(),
           let image = UIImage(data: data) else { return }
+    
+    // Mirror the image for front camera
+    let mirroredImage: UIImage
+    if let cgImage = image.cgImage {
+      let context = CIContext()
+      let ciImage = CIImage(cgImage: cgImage)
+      
+      // Apply horizontal flip for front camera
+      let flippedImage = ciImage.transformed(by: CGAffineTransform(scaleX: -1, y: 1))
+        .transformed(by: CGAffineTransform(translationX: ciImage.extent.width, y: 0))
+      
+      if let outputCGImage = context.createCGImage(flippedImage, from: ciImage.extent) {
+        mirroredImage = UIImage(cgImage: outputCGImage, scale: image.scale, orientation: .up)
+      } else {
+        mirroredImage = image
+      }
+    } else {
+      mirroredImage = image
+    }
 
     Task { @MainActor in
-      self.photo = image
+      self.photo = mirroredImage
     }
   }
 }

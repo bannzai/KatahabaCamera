@@ -25,7 +25,9 @@ class ImageWarper {
       originalSize: image.size
     )
 
-    guard let outputCGImage = context.createCGImage(finalImage, from: finalImage.extent) else {
+    // Ensure the output image has the same extent as the input
+    let outputExtent = inputCIImage.extent
+    guard let outputCGImage = context.createCGImage(finalImage, from: outputExtent) else {
       return nil
     }
 
@@ -74,27 +76,22 @@ class ImageWarper {
     
     guard let shoulderMaskWithGradient = multiplyFilter.outputImage else { return image }
 
-    // Apply horizontal stretch using perspective transform
-    let perspectiveTransform = CIFilter.perspectiveTransform()
-    perspectiveTransform.inputImage = image
+    // Apply horizontal stretch using affine transform
+    // Center the transform to avoid displacement
+    let centerX = image.extent.midX
+    let transform = CGAffineTransform(translationX: -centerX, y: 0)
+      .scaledBy(x: scale, y: 1.0)
+      .translatedBy(x: centerX, y: 0)
     
-    let stretchAmount = (scale - 1.0) * 0.3
-    let leftEdge = -stretchAmount * originalSize.width
-    let rightEdge = originalSize.width + stretchAmount * originalSize.width
-    
-    perspectiveTransform.topLeft = CGPoint(x: leftEdge, y: 0)
-    perspectiveTransform.topRight = CGPoint(x: rightEdge, y: 0)
-    perspectiveTransform.bottomLeft = CGPoint(x: leftEdge, y: originalSize.height)
-    perspectiveTransform.bottomRight = CGPoint(x: rightEdge, y: originalSize.height)
-    
-    guard let stretchedImage = perspectiveTransform.outputImage?.cropped(to: image.extent) else { return image }
+    let stretchedImage = image.transformed(by: transform)
+      .cropped(to: image.extent)
 
     let blendFilter = CIFilter.blendWithMask()
     blendFilter.inputImage = stretchedImage
     blendFilter.backgroundImage = image
     blendFilter.maskImage = shoulderMaskWithGradient
 
-    return blendFilter.outputImage ?? image
+    return blendFilter.outputImage?.cropped(to: image.extent) ?? image
   }
 
   private func createInverseFaceMask(faceRect: CGRect, imageSize: CGSize) -> CIImage {
