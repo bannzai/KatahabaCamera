@@ -44,11 +44,12 @@ class ImageWarper {
     let pinchDistortion = CIFilter.pinchDistortion()
     pinchDistortion.inputImage = image
     pinchDistortion.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    pinchDistortion.radius = Float(faceRect.width * 0.6)
+    // Increase radius to cover more of the face area smoothly
+    pinchDistortion.radius = Float(faceRect.width * 0.8)
     
     // Positive scale for pinch effect (0.65 means 35% smaller)
     // Scale needs to be inverted: smaller face = higher pinch value
-    let pinchScale = (1.0 - scale) * 2.0 // Amplify the effect
+    let pinchScale = (1.0 - scale) * 1.5 // Reduced from 2.0 for more natural effect
     pinchDistortion.scale = Float(pinchScale)
     
     print("Pinch distortion - radius: \(pinchDistortion.radius), scale: \(pinchScale)")

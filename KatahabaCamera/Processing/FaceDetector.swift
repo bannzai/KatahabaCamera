@@ -30,9 +30,22 @@ actor FaceDetector {
         print("Face observation boundingBox: \(face.boundingBox)")
         
         let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
-        let faceRect = self.convertRect(face.boundingBox, toImageSize: imageSize, orientation: image.imageOrientation)
+        var faceRect = self.convertRect(face.boundingBox, toImageSize: imageSize, orientation: image.imageOrientation)
+        
+        // Expand face rect to include more area around the face
+        let expansionFactor: CGFloat = 1.5  // 50% larger
+        let widthExpansion = faceRect.width * (expansionFactor - 1.0) / 2.0
+        let heightExpansion = faceRect.height * (expansionFactor - 1.0) / 2.0
+        
+        faceRect = CGRect(
+          x: faceRect.origin.x - widthExpansion,
+          y: faceRect.origin.y - heightExpansion,
+          width: faceRect.width * expansionFactor,
+          height: faceRect.height * expansionFactor
+        )
         
         print("Converted face rect: \(faceRect)")
+        print("Expanded face rect: \(faceRect)")
         continuation.resume(returning: faceRect)
       }
 
