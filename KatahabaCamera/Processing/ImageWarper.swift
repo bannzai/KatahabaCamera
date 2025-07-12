@@ -18,13 +18,21 @@ class ImageWarper {
 
     let scaledFaceImage = applyFaceScaling(to: inputCIImage, faceRect: faceRect, scale: faceScale, range: faceRange)
 
-    let finalImage = applyShoulderScaling(
-      to: scaledFaceImage,
-      shoulderMask: shoulderMask,
-      faceRect: faceRect,
-      scale: shoulderScale,
-      originalSize: image.size
-    )
+    // TODO: [AdjustmentDistortion] Enable/disable shoulder effect
+    let enableShoulderEffect = false
+    
+    let finalImage: CIImage
+    if enableShoulderEffect {
+      finalImage = applyShoulderScaling(
+        to: scaledFaceImage,
+        shoulderMask: shoulderMask,
+        faceRect: faceRect,
+        scale: shoulderScale,
+        originalSize: image.size
+      )
+    } else {
+      finalImage = scaledFaceImage
+    }
 
     // Ensure the output image has the same extent as the input
     let outputExtent = inputCIImage.extent
