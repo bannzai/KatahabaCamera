@@ -60,15 +60,24 @@ class ImageWarper {
         vec2 delta = currentPos - centerPoint;
         float distance = length(delta);
         
-        if (distance < radius) {
-          // Smooth falloff at the edge
+        // Apply effect within radius with smoother transition
+        if (distance < radius && distance > 0.001) {
+          // More gradual falloff for natural transition
           float normalizedDistance = distance / radius;
-          float falloff = smoothstep(0.8, 1.0, normalizedDistance);
-          float effectiveScale = mix(scale, 1.0, falloff);
+          // Use power curve for smoother, more natural transition
+          float falloff = pow(1.0 - normalizedDistance, 2.0);
           
-          // Calculate source position for uniform scaling
-          vec2 scaledDelta = delta / effectiveScale;
-          return centerPoint + scaledDelta;
+          // Apply scaling based on distance from center
+          float effectiveScale = mix(1.0, scale, falloff);
+          
+          // Calculate source position using polar coordinates
+          vec2 direction = delta / distance; // safer than normalize
+          float sourceDistance = distance / effectiveScale;
+          
+          vec2 sourcePos = centerPoint + direction * sourceDistance;
+          
+          // Ensure we're sampling within bounds
+          return sourcePos;
         }
         
         return currentPos;
@@ -88,9 +97,15 @@ class ImageWarper {
     
     let extent = image.extent
     
+    // Define the region of interest to include area that might be sampled
+    let roiCallback: CIKernelROICallback = { _, rect in
+      let expansion = effectRadius * 0.5
+      return rect.insetBy(dx: -expansion, dy: -expansion)
+    }
+    
     return kernel.apply(
       extent: extent,
-      roiCallback: { _, rect in rect },
+      roiCallback: roiCallback,
       image: image,
       arguments: arguments
     ) ?? image
