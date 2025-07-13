@@ -204,7 +204,7 @@ struct EditingView: View {
                   .foregroundColor(.white.opacity(0.6))
                   .font(.caption)
 
-                Slider(value: $viewModel.faceEffectRange, in: 0.1...3.0, onEditingChanged: { editing in
+                Slider(value: $viewModel.faceEffectRange, in: 0.1...2.0, onEditingChanged: { editing in
                   viewModel.showRangeIndicator = editing
                   if !editing {
                     viewModel.updateFaceEffectRange(viewModel.faceEffectRange)

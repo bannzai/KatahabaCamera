@@ -10,14 +10,14 @@ class CameraViewModel: ObservableObject {
   @Published var isShowingEditView = false
   // TODO: [AdjustmentDistortion] Default effect intensity (0.0 = no effect, 1.0 = maximum effect)
   @Published var effectIntensity: Double = 0.7
-  // TODO: [AdjustmentDistortion] Default face effect range (0.1 = small area, 3.0 = large area)
+  // TODO: [AdjustmentDistortion] Default face effect range (0.1 = small area, 2.0 = large area)
   @Published var faceEffectRange: Double = 0.35
   @Published var isSaving = false
   @Published var showShareSheet = false
   @Published var permissionGranted = false
   @Published var showRangeIndicator = false
   @Published var rangeIndicatorSize: CGFloat = 100
-  @Published var rangeIndicatorPosition: CGPoint = .zero
+  @Published var rangeIndicatorPosition: CGPoint = CGPoint(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2)
   @Published var faceCenterOffset: CGPoint = .zero // Offset from detected face center
   @Published var showCenterAdjustment = false
 
@@ -26,11 +26,11 @@ class CameraViewModel: ObservableObject {
   private let shoulderDetector = ShoulderDetector()
   private let imageWarper = ImageWarper()
   
-  @Published var displaySize: CGSize = .zero
-  @Published var imageSize: CGSize = .zero
+  var displaySize: CGSize = .zero
+  var imageSize: CGSize = .zero
   private var detectedFaceRect: CGRect?
   private var imageDisplayScale: CGFloat = 1.0
-  @Published var displayOffset: CGPoint = .zero
+  private var displayOffset: CGPoint = .zero
 
   private var cancellables = Set<AnyCancellable>()
 
@@ -98,6 +98,10 @@ class CameraViewModel: ObservableObject {
           
           if self.processedImage != nil {
             print("Image processing completed successfully")
+            // Update range indicator after processing is complete
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+              self.updateRangeIndicator()
+            }
           }
         }
       } catch {
@@ -161,7 +165,6 @@ class CameraViewModel: ObservableObject {
     self.displaySize = displaySize
     self.displayOffset = displayOffset
     self.imageSize = imageSize
-    print("updateDisplayInfo called - displaySize: \(displaySize), displayOffset: \(displayOffset), imageSize: \(imageSize)")
     updateRangeIndicator()
   }
 
