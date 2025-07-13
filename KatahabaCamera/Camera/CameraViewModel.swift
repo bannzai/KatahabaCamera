@@ -95,13 +95,10 @@ class CameraViewModel: ObservableObject {
             intensity: CGFloat(effectIntensity),
             faceRange: CGFloat(faceEffectRange)
           )
+          self.updateRangeIndicator()
           
           if self.processedImage != nil {
             print("Image processing completed successfully")
-            // Update range indicator after processing is complete
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-              self.updateRangeIndicator()
-            }
           }
         }
       } catch {
