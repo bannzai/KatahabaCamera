@@ -17,7 +17,7 @@ class CameraViewModel: ObservableObject {
   @Published var permissionGranted = false
   @Published var showRangeIndicator = false
   @Published var rangeIndicatorSize: CGFloat = 100
-  @Published var rangeIndicatorPosition: CGPoint = CGPoint(x: -1000, y: -1000) // Off-screen initially
+  @Published var rangeIndicatorPosition: CGPoint = .zero
   @Published var faceCenterOffset: CGPoint = .zero // Offset from detected face center
   @Published var showCenterAdjustment = false
 
@@ -61,7 +61,7 @@ class CameraViewModel: ObservableObject {
         print("Processing image - size: \(image.size), orientation: \(image.imageOrientation.rawValue)")
         
         let faceRect = try await faceDetector.detectFace(in: image)
-        print("Face detected at: \(faceRect) in image size: \(image.size)")
+        print("Face detected at: \(faceRect)")
         
         let shoulderMask = try await shoulderDetector.detectShoulders(in: image)
         print("Shoulder mask generated")
@@ -98,8 +98,6 @@ class CameraViewModel: ObservableObject {
           
           if self.processedImage != nil {
             print("Image processing completed successfully")
-            // Update range indicator after face detection is complete
-            self.updateRangeIndicator()
           }
         }
       } catch {
@@ -144,30 +142,16 @@ class CameraViewModel: ObservableObject {
       return 
     }
     
-    print("updateRangeIndicator - faceRect: \(faceRect)")
-    print("updateRangeIndicator - displaySize: \(displaySize), imageSize: \(imageSize)")
-    print("updateRangeIndicator - displayOffset: \(displayOffset)")
-    print("updateRangeIndicator - faceCenterOffset: \(faceCenterOffset)")
-    
     // Calculate scale factor
     let scale = displaySize.width / imageSize.width
-    print("updateRangeIndicator - scale: \(scale)")
     
     // Convert face rect to screen coordinates with offset
-    let faceCenterInImage = CGPoint(x: faceRect.midX, y: faceRect.midY)
-    let offsetFaceCenter = CGPoint(
-      x: faceCenterInImage.x + faceCenterOffset.x,
-      y: faceCenterInImage.y + faceCenterOffset.y
-    )
     let screenFaceCenter = CGPoint(
-      x: displayOffset.x + offsetFaceCenter.x * scale,
-      y: displayOffset.y + offsetFaceCenter.y * scale
+      x: displayOffset.x + (faceRect.midX + faceCenterOffset.x) * scale,
+      y: displayOffset.y + (faceRect.midY + faceCenterOffset.y) * scale
     )
     
-    print("updateRangeIndicator - faceCenterInImage: \(faceCenterInImage)")
-    print("updateRangeIndicator - offsetFaceCenter: \(offsetFaceCenter)")
-    print("updateRangeIndicator - screenFaceCenter: \(screenFaceCenter)")
-    print("updateRangeIndicator - rangeSize: \(faceRect.width * scale * CGFloat(faceEffectRange * 2))")
+    print("updateRangeIndicator - center: \(screenFaceCenter), size: \(faceRect.width * scale * CGFloat(faceEffectRange * 2))")
     
     rangeIndicatorPosition = screenFaceCenter
     rangeIndicatorSize = faceRect.width * scale * CGFloat(faceEffectRange * 2)
@@ -178,12 +162,7 @@ class CameraViewModel: ObservableObject {
     self.displayOffset = displayOffset
     self.imageSize = imageSize
     print("updateDisplayInfo called - displaySize: \(displaySize), displayOffset: \(displayOffset), imageSize: \(imageSize)")
-    // Only update range indicator if face detection is complete
-    if detectedFaceRect != nil {
-      updateRangeIndicator()
-    } else {
-      print("updateDisplayInfo - skipping updateRangeIndicator as face not detected yet")
-    }
+    updateRangeIndicator()
   }
 
   func savePhoto() {

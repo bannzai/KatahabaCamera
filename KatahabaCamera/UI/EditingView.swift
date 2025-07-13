@@ -45,6 +45,8 @@ struct EditingView: View {
                     imageSize: imageSize,
                     containerSize: containerSize
                   )
+                  // Ensure range indicator is positioned correctly on initial display
+                  viewModel.updateRangeIndicator()
                 }
                 .onChange(of: geometry.size) { _ in
                   // Recalculate when container size changes
@@ -186,9 +188,6 @@ struct EditingView: View {
                 Button(action: {
                   viewModel.showCenterAdjustment.toggle()
                   viewModel.showRangeIndicator = viewModel.showCenterAdjustment
-                  if viewModel.showCenterAdjustment {
-                    viewModel.updateRangeIndicator()
-                  }
                 }) {
                   HStack(spacing: 4) {
                     Image(systemName: "move.3d")
