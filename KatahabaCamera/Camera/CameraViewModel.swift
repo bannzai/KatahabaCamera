@@ -188,5 +188,7 @@ class CameraViewModel: ObservableObject {
     capturedImage = nil
     processedImage = nil
     isShowingEditView = false
+    faceCenterOffset = .zero
+    showCenterAdjustment = false
   }
 }

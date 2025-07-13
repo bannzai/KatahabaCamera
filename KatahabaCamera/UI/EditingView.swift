@@ -222,6 +222,7 @@ struct EditingView: View {
 
             HStack(spacing: 30) {
               Button(action: {
+                dragStartOffset = .zero
                 viewModel.retake()
               }) {
                 VStack {
