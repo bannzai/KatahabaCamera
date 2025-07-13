@@ -53,30 +53,30 @@ class ImageWarper {
     let clampedRange = max(0.2, min(0.6, range))
     let effectRadius = faceRect.width * clampedRange
     
-    // Define the warp kernel with proper bounds checking
+    // Define the warp kernel
     let warpKernel = CIWarpKernel(source: """
-      kernel vec2 uniformScale(vec2 centerPoint, float radius, float scale, vec4 extent) {
+      kernel vec2 uniformScale(vec2 centerPoint, float radius, float scale) {
         vec2 currentPos = destCoord();
         vec2 delta = currentPos - centerPoint;
         float distance = length(delta);
         
-        // Apply effect within radius
-        if (distance < radius && distance > 0.1) {
-          // Quadratic falloff for natural transition
+        // Apply effect within radius with smoother transition
+        if (distance < radius && distance > 0.001) {
+          // More gradual falloff for natural transition
           float normalizedDistance = distance / radius;
-          float falloff = pow(1.0 - normalizedDistance, 2.5);
+          // Use power curve for smoother, more natural transition
+          float falloff = pow(1.0 - normalizedDistance, 2.0);
           
-          // Calculate effective scale with falloff
-          float effectiveScale = 1.0 - (1.0 - scale) * falloff;
+          // Apply scaling based on distance from center
+          float effectiveScale = mix(1.0, scale, falloff);
           
-          // Calculate source position
-          vec2 scaledDelta = delta / effectiveScale;
-          vec2 sourcePos = centerPoint + scaledDelta;
+          // Calculate source position using polar coordinates
+          vec2 direction = delta / distance; // safer than normalize
+          float sourceDistance = distance / effectiveScale;
           
-          // Clamp to image bounds to prevent sampling outside
-          sourcePos.x = clamp(sourcePos.x, extent.x, extent.x + extent.z - 1.0);
-          sourcePos.y = clamp(sourcePos.y, extent.y, extent.y + extent.w - 1.0);
+          vec2 sourcePos = centerPoint + direction * sourceDistance;
           
+          // Ensure we're sampling within bounds
           return sourcePos;
         }
         
@@ -92,8 +92,7 @@ class ImageWarper {
     let arguments = [
       CIVector(x: faceCenterX, y: faceCenterY),
       effectRadius,
-      scale,
-      CIVector(x: extent.origin.x, y: extent.origin.y, z: extent.size.width, w: extent.size.height)
+      scale
     ] as [Any]
     
     let extent = image.extent
