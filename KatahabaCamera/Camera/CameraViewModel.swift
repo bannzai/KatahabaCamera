@@ -26,11 +26,11 @@ class CameraViewModel: ObservableObject {
   private let shoulderDetector = ShoulderDetector()
   private let imageWarper = ImageWarper()
   
+  var displaySize: CGSize = .zero
+  var imageSize: CGSize = .zero
   private var detectedFaceRect: CGRect?
   private var imageDisplayScale: CGFloat = 1.0
-  private var displaySize: CGSize = .zero
   private var displayOffset: CGPoint = .zero
-  private var imageSize: CGSize = .zero
 
   private var cancellables = Set<AnyCancellable>()
 
