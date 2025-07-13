@@ -49,18 +49,51 @@ class ImageWarper {
     
     print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale), range: \(range)")
     
-    // Use bump distortion for uniform shrinking
+    // Use a custom warp kernel for uniform face shrinking
     let clampedRange = max(0.2, min(0.6, range))
     let effectRadius = faceRect.width * clampedRange
     
-    // Apply bump distortion with negative scale for uniform shrinking
-    let bump = CIFilter.bumpDistortion()
-    bump.inputImage = image
-    bump.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    bump.radius = Float(effectRadius * 1.2)  // Slightly larger radius
-    bump.scale = Float((scale - 1.0) * 1.0)  // Full negative scale for shrinking
+    // Define the warp kernel
+    let warpKernel = CIWarpKernel(source: """
+      kernel vec2 uniformScale(vec2 centerPoint, float radius, float scale) {
+        vec2 currentPos = destCoord();
+        vec2 delta = currentPos - centerPoint;
+        float distance = length(delta);
+        
+        if (distance < radius) {
+          // Smooth falloff at the edge
+          float normalizedDistance = distance / radius;
+          float falloff = smoothstep(0.8, 1.0, normalizedDistance);
+          float effectiveScale = mix(scale, 1.0, falloff);
+          
+          // Calculate source position for uniform scaling
+          vec2 scaledDelta = delta / effectiveScale;
+          return centerPoint + scaledDelta;
+        }
+        
+        return currentPos;
+      }
+      """)
     
-    return bump.outputImage ?? image
+    guard let kernel = warpKernel else {
+      print("Failed to create warp kernel")
+      return image
+    }
+    
+    let arguments = [
+      CIVector(x: faceCenterX, y: faceCenterY),
+      effectRadius,
+      scale
+    ] as [Any]
+    
+    let extent = image.extent
+    
+    return kernel.apply(
+      extent: extent,
+      roiCallback: { _, rect in rect },
+      image: image,
+      arguments: arguments
+    ) ?? image
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {
