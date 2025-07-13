@@ -3,6 +3,7 @@ import SwiftUI
 struct EditingView: View {
   @ObservedObject var viewModel: CameraViewModel
   @Environment(\.dismiss) private var dismiss
+  @State private var dragStartOffset: CGPoint = .zero
 
   var body: some View {
     NavigationView {
@@ -77,16 +78,51 @@ struct EditingView: View {
               
               // Show face effect range circle
               if viewModel.showRangeIndicator {
-                Circle()
-                  .stroke(Color.white.opacity(0.8), style: StrokeStyle(lineWidth: 2, dash: [5, 5]))
-                  .frame(width: viewModel.rangeIndicatorSize, height: viewModel.rangeIndicatorSize)
-                  .position(viewModel.rangeIndicatorPosition)
-                  .animation(.easeInOut(duration: 0.3), value: viewModel.rangeIndicatorSize)
-                
-                Circle()
-                  .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                  .frame(width: viewModel.rangeIndicatorSize * 0.6, height: viewModel.rangeIndicatorSize * 0.6)
-                  .position(viewModel.rangeIndicatorPosition)
+                ZStack {
+                  Circle()
+                    .stroke(Color.white.opacity(0.8), style: StrokeStyle(lineWidth: 2, dash: [5, 5]))
+                    .frame(width: viewModel.rangeIndicatorSize, height: viewModel.rangeIndicatorSize)
+                    .position(viewModel.rangeIndicatorPosition)
+                    .animation(.easeInOut(duration: 0.3), value: viewModel.rangeIndicatorSize)
+                  
+                  Circle()
+                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                    .frame(width: viewModel.rangeIndicatorSize * 0.6, height: viewModel.rangeIndicatorSize * 0.6)
+                    .position(viewModel.rangeIndicatorPosition)
+                  
+                  // Center adjustment indicator
+                  if viewModel.showCenterAdjustment {
+                    Image(systemName: "plus.circle.fill")
+                      .foregroundColor(.yellow)
+                      .font(.system(size: 20))
+                      .position(viewModel.rangeIndicatorPosition)
+                      .gesture(
+                        DragGesture()
+                          .onChanged { value in
+                            if dragStartOffset == .zero && viewModel.faceCenterOffset != .zero {
+                              dragStartOffset = viewModel.faceCenterOffset
+                            }
+                            let scale = viewModel.displaySize.width / viewModel.imageSize.width
+                            let deltaX = (value.location.x - value.startLocation.x) / scale
+                            let deltaY = (value.location.y - value.startLocation.y) / scale
+                            let newOffset = CGPoint(
+                              x: dragStartOffset.x + deltaX,
+                              y: dragStartOffset.y + deltaY
+                            )
+                            viewModel.updateFaceCenterOffset(newOffset)
+                          }
+                          .onEnded { value in
+                            let scale = viewModel.displaySize.width / viewModel.imageSize.width
+                            let deltaX = (value.location.x - value.startLocation.x) / scale
+                            let deltaY = (value.location.y - value.startLocation.y) / scale
+                            dragStartOffset = CGPoint(
+                              x: dragStartOffset.x + deltaX,
+                              y: dragStartOffset.y + deltaY
+                            )
+                          }
+                      )
+                  }
+                }
               }
             }
           }
@@ -129,16 +165,44 @@ struct EditingView: View {
             .padding(.horizontal)
             
             VStack(alignment: .leading, spacing: 8) {
-              Text("Face Effect Range")
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.8))
+              HStack {
+                Text("Face Effect Range")
+                  .font(.caption)
+                  .foregroundColor(.white.opacity(0.8))
+                
+                Spacer()
+                
+                if viewModel.faceCenterOffset != .zero {
+                  Button(action: {
+                    viewModel.updateFaceCenterOffset(.zero)
+                    dragStartOffset = .zero
+                  }) {
+                    Image(systemName: "arrow.counterclockwise")
+                      .font(.caption)
+                      .foregroundColor(.white.opacity(0.8))
+                  }
+                }
+                
+                Button(action: {
+                  viewModel.showCenterAdjustment.toggle()
+                  viewModel.showRangeIndicator = viewModel.showCenterAdjustment
+                }) {
+                  HStack(spacing: 4) {
+                    Image(systemName: "move.3d")
+                      .font(.caption)
+                    Text("Adjust Center")
+                      .font(.caption2)
+                  }
+                  .foregroundColor(viewModel.showCenterAdjustment ? .yellow : .white.opacity(0.8))
+                }
+              }
 
               HStack {
                 Image(systemName: "circle.dashed")
                   .foregroundColor(.white.opacity(0.6))
                   .font(.caption)
 
-                Slider(value: $viewModel.faceEffectRange, in: 0.2...0.6, onEditingChanged: { editing in
+                Slider(value: $viewModel.faceEffectRange, in: 0.1...1.0, onEditingChanged: { editing in
                   viewModel.showRangeIndicator = editing
                   if !editing {
                     viewModel.updateFaceEffectRange(viewModel.faceEffectRange)

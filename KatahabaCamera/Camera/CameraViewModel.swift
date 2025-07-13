@@ -10,7 +10,7 @@ class CameraViewModel: ObservableObject {
   @Published var isShowingEditView = false
   // TODO: [AdjustmentDistortion] Default effect intensity (0.0 = no effect, 1.0 = maximum effect)
   @Published var effectIntensity: Double = 0.7
-  // TODO: [AdjustmentDistortion] Default face effect range (0.2 = small area, 0.6 = large area)
+  // TODO: [AdjustmentDistortion] Default face effect range (0.1 = small area, 1.0 = large area)
   @Published var faceEffectRange: Double = 0.35
   @Published var isSaving = false
   @Published var showShareSheet = false
@@ -18,6 +18,8 @@ class CameraViewModel: ObservableObject {
   @Published var showRangeIndicator = false
   @Published var rangeIndicatorSize: CGFloat = 100
   @Published var rangeIndicatorPosition: CGPoint = .zero
+  @Published var faceCenterOffset: CGPoint = .zero // Offset from detected face center
+  @Published var showCenterAdjustment = false
 
   let cameraService = CameraService()
   private let faceDetector = FaceDetector()
@@ -74,9 +76,15 @@ class CameraViewModel: ObservableObject {
           
           self.detectedFaceRect = adjustedFaceRect
           print("Applying warp with intensity: \(self.effectIntensity), range: \(self.faceEffectRange)")
+          
+          // Apply center offset to face rect
+          var offsetFaceRect = faceRect
+          offsetFaceRect.origin.x += faceCenterOffset.x
+          offsetFaceRect.origin.y += faceCenterOffset.y
+          
           self.processedImage = imageWarper.warpImage(
             image,
-            faceRect: faceRect,  // Use original rect for processing
+            faceRect: offsetFaceRect,  // Use offset rect for processing
             shoulderMask: shoulderMask,
             intensity: CGFloat(effectIntensity),
             faceRange: CGFloat(faceEffectRange)
@@ -112,6 +120,15 @@ class CameraViewModel: ObservableObject {
     }
   }
   
+  func updateFaceCenterOffset(_ offset: CGPoint) {
+    faceCenterOffset = offset
+    updateRangeIndicator()
+    
+    if let capturedImage = capturedImage {
+      processImage(capturedImage)
+    }
+  }
+  
   func updateRangeIndicator() {
     guard let faceRect = detectedFaceRect,
           displaySize.width > 0 else { return }
@@ -119,10 +136,10 @@ class CameraViewModel: ObservableObject {
     // Calculate scale factor
     let scale = displaySize.width / imageSize.width
     
-    // Convert face rect to screen coordinates
+    // Convert face rect to screen coordinates with offset
     let screenFaceCenter = CGPoint(
-      x: displayOffset.x + faceRect.midX * scale,
-      y: displayOffset.y + faceRect.midY * scale
+      x: displayOffset.x + (faceRect.midX + faceCenterOffset.x) * scale,
+      y: displayOffset.y + (faceRect.midY + faceCenterOffset.y) * scale
     )
     
     rangeIndicatorPosition = screenFaceCenter

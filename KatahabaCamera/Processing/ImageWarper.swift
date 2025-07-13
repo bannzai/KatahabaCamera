@@ -50,7 +50,8 @@ class ImageWarper {
     print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale), range: \(range)")
     
     // Use a custom warp kernel for uniform face shrinking
-    let clampedRange = max(0.2, min(0.6, range))
+    // Wider range for more control (0.1 to 1.0)
+    let clampedRange = max(0.1, min(1.0, range))
     let effectRadius = faceRect.width * clampedRange
     
     // Define the warp kernel
