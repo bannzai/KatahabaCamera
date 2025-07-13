@@ -79,7 +79,13 @@ class CameraViewModel: ObservableObject {
           
           // Apply center offset to face rect
           var offsetFaceRect = faceRect
-          offsetFaceRect.origin.x += faceCenterOffset.x
+          if image.imageOrientation == .leftMirrored || image.imageOrientation == .rightMirrored ||
+             image.imageOrientation == .upMirrored || image.imageOrientation == .downMirrored {
+            // For mirrored images, reverse X offset
+            offsetFaceRect.origin.x -= faceCenterOffset.x
+          } else {
+            offsetFaceRect.origin.x += faceCenterOffset.x
+          }
           offsetFaceRect.origin.y += faceCenterOffset.y
           
           self.processedImage = imageWarper.warpImage(

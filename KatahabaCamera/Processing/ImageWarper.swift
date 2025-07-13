@@ -54,22 +54,26 @@ class ImageWarper {
     let clampedRange = max(0.1, min(1.0, range))
     let effectRadius = faceRect.width * clampedRange
     
-    // Define the warp kernel
+    // Define the warp kernel with smooth falloff
     let warpKernel = CIWarpKernel(source: """
       kernel vec2 uniformScale(vec2 centerPoint, float radius, float scale) {
         vec2 currentPos = destCoord();
         vec2 delta = currentPos - centerPoint;
         float distance = length(delta);
         
-        if (distance < radius) {
-          // Smooth falloff at the edge
+        if (distance < radius && distance > 0.1) {
+          // Smooth falloff for natural transition
           float normalizedDistance = distance / radius;
-          float falloff = smoothstep(0.8, 1.0, normalizedDistance);
-          float effectiveScale = mix(scale, 1.0, falloff);
+          // Use cosine interpolation for smoother edge
+          float falloff = (1.0 + cos(normalizedDistance * 3.14159)) * 0.5;
+          
+          // Apply scale based on falloff
+          float effectiveScale = mix(scale, 1.0, 1.0 - falloff);
           
           // Calculate source position for uniform scaling
-          vec2 scaledDelta = delta / effectiveScale;
-          return centerPoint + scaledDelta;
+          vec2 direction = delta / distance;
+          float sourceDistance = distance / effectiveScale;
+          return centerPoint + direction * sourceDistance;
         }
         
         return currentPos;
