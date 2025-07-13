@@ -95,7 +95,11 @@ class ImageWarper {
     
     return kernel.apply(
       extent: extent,
-      roiCallback: { _, rect in rect },
+      roiCallback: { _, rect in 
+        // Expand ROI to include all possible source pixels
+        let expansion = effectRadius * 1.0
+        return rect.insetBy(dx: -expansion, dy: -expansion).intersection(extent)
+      },
       image: image,
       arguments: arguments
     ) ?? image
