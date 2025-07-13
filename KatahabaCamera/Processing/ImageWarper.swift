@@ -50,8 +50,8 @@ class ImageWarper {
     print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale), range: \(range)")
     
     // Use a custom warp kernel for uniform face shrinking
-    // Wider range for more control (0.1 to 2.0)
-    let clampedRange = max(0.1, min(2.0, range))
+    // Wider range for more control (0.1 to 3.0)
+    let clampedRange = max(0.1, min(3.0, range))
     let effectRadius = faceRect.width * clampedRange
     
     // Define the warp kernel with smooth falloff
@@ -96,8 +96,8 @@ class ImageWarper {
     return kernel.apply(
       extent: extent,
       roiCallback: { _, rect in 
-        // Expand ROI to include all possible source pixels
-        let expansion = effectRadius * 1.0
+        // Expand ROI to include all possible source pixels for larger radius
+        let expansion = effectRadius * 1.5
         return rect.insetBy(dx: -expansion, dy: -expansion).intersection(extent)
       },
       image: image,
