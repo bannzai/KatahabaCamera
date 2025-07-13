@@ -49,46 +49,18 @@ class ImageWarper {
     
     print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale), range: \(range)")
     
-    // Scale entire image then crop and blend for uniform face shrinking
+    // Use pinch distortion with larger radius for smoother transition
     let clampedRange = max(0.2, min(0.6, range))
     let effectRadius = faceRect.width * clampedRange
     
-    // Scale the entire image
-    let scaleTransform = CGAffineTransform(scaleX: scale, y: scale)
-    let scaledImage = image.transformed(by: scaleTransform)
+    // Apply pinch distortion with extended radius to avoid sharp edges
+    let pinch = CIFilter.pinchDistortion()
+    pinch.inputImage = image
+    pinch.center = CGPoint(x: faceCenterX, y: faceCenterY)
+    pinch.radius = Float(effectRadius * 1.5)  // Extend radius for smoother falloff
+    pinch.scale = Float((1.0 - scale) * 0.7)  // Moderate the effect strength
     
-    // Calculate how to position the scaled image so the face center remains at the same position
-    let scaledFaceCenterX = faceCenterX * scale
-    let scaledFaceCenterY = faceCenterY * scale
-    let offsetX = faceCenterX - scaledFaceCenterX
-    let offsetY = faceCenterY - scaledFaceCenterY
-    
-    let positionTransform = CGAffineTransform(translationX: offsetX, y: offsetY)
-    let positionedScaledImage = scaledImage.transformed(by: positionTransform)
-    
-    // Create smooth radial gradient mask
-    let radialGradient = CIFilter.radialGradient()
-    radialGradient.center = CGPoint(x: faceCenterX, y: faceCenterY)
-    radialGradient.radius0 = Float(effectRadius * 0.4)
-    radialGradient.radius1 = Float(effectRadius)
-    radialGradient.color0 = CIColor.white
-    radialGradient.color1 = CIColor.black
-    
-    guard let gradientMask = radialGradient.outputImage else {
-      return image
-    }
-    
-    // Crop both mask and scaled image to original extent
-    let croppedMask = gradientMask.cropped(to: image.extent)
-    let croppedScaledImage = positionedScaledImage.cropped(to: image.extent)
-    
-    // Blend scaled image with original using gradient mask
-    let blendFilter = CIFilter.blendWithMask()
-    blendFilter.inputImage = croppedScaledImage
-    blendFilter.backgroundImage = image
-    blendFilter.maskImage = croppedMask
-    
-    return blendFilter.outputImage ?? image
+    return pinch.outputImage ?? image
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {
