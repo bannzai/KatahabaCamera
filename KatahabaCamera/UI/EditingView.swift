@@ -45,8 +45,6 @@ struct EditingView: View {
                     imageSize: imageSize,
                     containerSize: containerSize
                   )
-                  // Ensure range indicator is positioned correctly on initial display
-                  viewModel.updateRangeIndicator()
                 }
                 .onChange(of: geometry.size) { _ in
                   // Recalculate when container size changes
@@ -204,7 +202,7 @@ struct EditingView: View {
                   .foregroundColor(.white.opacity(0.6))
                   .font(.caption)
 
-                Slider(value: $viewModel.faceEffectRange, in: 0.1...2.0, onEditingChanged: { editing in
+                Slider(value: $viewModel.faceEffectRange, in: 0.1...1.0, onEditingChanged: { editing in
                   viewModel.showRangeIndicator = editing
                   if !editing {
                     viewModel.updateFaceEffectRange(viewModel.faceEffectRange)
