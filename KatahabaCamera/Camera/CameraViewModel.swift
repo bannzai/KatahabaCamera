@@ -10,14 +10,14 @@ class CameraViewModel: ObservableObject {
   @Published var isShowingEditView = false
   // TODO: [AdjustmentDistortion] Default effect intensity (0.0 = no effect, 1.0 = maximum effect)
   @Published var effectIntensity: Double = 0.7
-  // TODO: [AdjustmentDistortion] Default face effect range (0.1 = small area, 1.0 = large area)
+  // TODO: [AdjustmentDistortion] Default face effect range (0.1 = small area, 2.0 = large area)
   @Published var faceEffectRange: Double = 0.35
   @Published var isSaving = false
   @Published var showShareSheet = false
   @Published var permissionGranted = false
   @Published var showRangeIndicator = false
   @Published var rangeIndicatorSize: CGFloat = 100
-  @Published var rangeIndicatorPosition: CGPoint = .zero
+  @Published var rangeIndicatorPosition: CGPoint = CGPoint(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2)
   @Published var faceCenterOffset: CGPoint = .zero // Offset from detected face center
   @Published var showCenterAdjustment = false
 
@@ -26,8 +26,8 @@ class CameraViewModel: ObservableObject {
   private let shoulderDetector = ShoulderDetector()
   private let imageWarper = ImageWarper()
   
-  var displaySize: CGSize = .zero
-  var imageSize: CGSize = .zero
+  private var displaySize: CGSize = .zero
+  private var imageSize: CGSize = .zero
   private var detectedFaceRect: CGRect?
   private var imageDisplayScale: CGFloat = 1.0
   private var displayOffset: CGPoint = .zero
@@ -137,7 +137,11 @@ class CameraViewModel: ObservableObject {
   
   func updateRangeIndicator() {
     guard let faceRect = detectedFaceRect,
-          displaySize.width > 0 else { return }
+          displaySize.width > 0,
+          imageSize.width > 0 else { 
+      print("updateRangeIndicator skipped - faceRect: \(detectedFaceRect != nil), displaySize: \(displaySize), imageSize: \(imageSize)")
+      return 
+    }
     
     // Calculate scale factor
     let scale = displaySize.width / imageSize.width
@@ -147,6 +151,8 @@ class CameraViewModel: ObservableObject {
       x: displayOffset.x + (faceRect.midX + faceCenterOffset.x) * scale,
       y: displayOffset.y + (faceRect.midY + faceCenterOffset.y) * scale
     )
+    
+    print("updateRangeIndicator - center: \(screenFaceCenter), size: \(faceRect.width * scale * CGFloat(faceEffectRange * 2))")
     
     rangeIndicatorPosition = screenFaceCenter
     rangeIndicatorSize = faceRect.width * scale * CGFloat(faceEffectRange * 2)
