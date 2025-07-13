@@ -61,17 +61,25 @@ class ImageWarper {
         float distance = length(delta);
         
         // Apply effect within radius
-        if (distance < radius && distance > 0.1) {
-          // Quadratic falloff for natural transition
+        if (distance < radius) {
+          // Smooth falloff for natural transition
           float normalizedDistance = distance / radius;
-          float falloff = pow(1.0 - normalizedDistance, 2.5);
+          // S-curve for smooth start and end
+          float t = normalizedDistance;
+          float falloff = 1.0 - (t * t * (3.0 - 2.0 * t));
           
-          // Calculate effective scale with falloff
-          float effectiveScale = 1.0 - (1.0 - scale) * falloff;
+          // Interpolate scale based on falloff
+          float effectiveScale = mix(scale, 1.0, normalizedDistance);
           
-          // Calculate source position
-          vec2 scaledDelta = delta / effectiveScale;
-          vec2 sourcePos = centerPoint + scaledDelta;
+          // Calculate source position - inverse mapping
+          vec2 sourcePos;
+          if (distance > 0.01) {
+            vec2 direction = delta / distance;
+            float newDistance = distance / effectiveScale;
+            sourcePos = centerPoint + direction * newDistance;
+          } else {
+            sourcePos = currentPos;
+          }
           
           // Clamp to image bounds to prevent sampling outside
           sourcePos.x = clamp(sourcePos.x, extent.x, extent.x + extent.z - 1.0);
