@@ -11,59 +11,84 @@ struct EditingView: View {
 
         if let image = viewModel.processedImage {
           GeometryReader { geometry in
-            Image(uiImage: image)
-              .resizable()
-              .scaledToFit()
-              .frame(maxWidth: .infinity, maxHeight: .infinity)
-              .background(
-                GeometryReader { imageGeometry in
-                  Color.clear
-                    .onAppear {
-                      // Calculate actual image display frame
-                      let imageSize = image.size
-                      let containerSize = geometry.size
-                      let imageAspect = imageSize.width / imageSize.height
-                      let containerAspect = containerSize.width / containerSize.height
-                      
-                      var displayWidth: CGFloat
-                      var displayHeight: CGFloat
-                      var offsetX: CGFloat = 0
-                      var offsetY: CGFloat = 0
-                      
-                      if imageAspect > containerAspect {
-                        displayWidth = containerSize.width
-                        displayHeight = containerSize.width / imageAspect
-                        offsetY = (containerSize.height - displayHeight) / 2
-                      } else {
-                        displayHeight = containerSize.height
-                        displayWidth = containerSize.height * imageAspect
-                        offsetX = (containerSize.width - displayWidth) / 2
-                      }
-                      
-                      viewModel.updateDisplayInfo(
-                        displaySize: CGSize(width: displayWidth, height: displayHeight),
-                        displayOffset: CGPoint(x: offsetX, y: offsetY),
-                        imageSize: imageSize
-                      )
-                    }
+            ZStack {
+              Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onAppear {
+                  // Calculate actual image display frame
+                  let imageSize = image.size
+                  let containerSize = geometry.size
+                  let imageAspect = imageSize.width / imageSize.height
+                  let containerAspect = containerSize.width / containerSize.height
+                  
+                  var displayWidth: CGFloat
+                  var displayHeight: CGFloat
+                  var offsetX: CGFloat = 0
+                  var offsetY: CGFloat = 0
+                  
+                  if imageAspect > containerAspect {
+                    displayWidth = containerSize.width
+                    displayHeight = containerSize.width / imageAspect
+                    offsetY = (containerSize.height - displayHeight) / 2
+                  } else {
+                    displayHeight = containerSize.height
+                    displayWidth = containerSize.height * imageAspect
+                    offsetX = (containerSize.width - displayWidth) / 2
+                  }
+                  
+                  viewModel.updateDisplayInfo(
+                    displaySize: CGSize(width: displayWidth, height: displayHeight),
+                    displayOffset: CGPoint(x: offsetX, y: offsetY),
+                    imageSize: imageSize,
+                    containerSize: containerSize
+                  )
                 }
-              )
-              .overlay(
-                // Show face effect range circle
-                viewModel.showRangeIndicator ? 
+                .onChange(of: geometry.size) { _ in
+                  // Recalculate when container size changes
+                  let imageSize = image.size
+                  let containerSize = geometry.size
+                  let imageAspect = imageSize.width / imageSize.height
+                  let containerAspect = containerSize.width / containerSize.height
+                  
+                  var displayWidth: CGFloat
+                  var displayHeight: CGFloat
+                  var offsetX: CGFloat = 0
+                  var offsetY: CGFloat = 0
+                  
+                  if imageAspect > containerAspect {
+                    displayWidth = containerSize.width
+                    displayHeight = containerSize.width / imageAspect
+                    offsetY = (containerSize.height - displayHeight) / 2
+                  } else {
+                    displayHeight = containerSize.height
+                    displayWidth = containerSize.height * imageAspect
+                    offsetX = (containerSize.width - displayWidth) / 2
+                  }
+                  
+                  viewModel.updateDisplayInfo(
+                    displaySize: CGSize(width: displayWidth, height: displayHeight),
+                    displayOffset: CGPoint(x: offsetX, y: offsetY),
+                    imageSize: imageSize,
+                    containerSize: containerSize
+                  )
+                }
+              
+              // Show face effect range circle
+              if viewModel.showRangeIndicator {
                 Circle()
                   .stroke(Color.white.opacity(0.8), style: StrokeStyle(lineWidth: 2, dash: [5, 5]))
                   .frame(width: viewModel.rangeIndicatorSize, height: viewModel.rangeIndicatorSize)
                   .position(viewModel.rangeIndicatorPosition)
                   .animation(.easeInOut(duration: 0.3), value: viewModel.rangeIndicatorSize)
-                  .overlay(
-                    Circle()
-                      .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                      .frame(width: viewModel.rangeIndicatorSize * 0.6, height: viewModel.rangeIndicatorSize * 0.6)
-                      .position(viewModel.rangeIndicatorPosition)
-                  )
-                : nil
-              )
+                
+                Circle()
+                  .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                  .frame(width: viewModel.rangeIndicatorSize * 0.6, height: viewModel.rangeIndicatorSize * 0.6)
+                  .position(viewModel.rangeIndicatorPosition)
+              }
+            }
           }
         } else if let image = viewModel.capturedImage {
           Image(uiImage: image)

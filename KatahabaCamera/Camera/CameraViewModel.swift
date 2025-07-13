@@ -65,11 +65,18 @@ class CameraViewModel: ObservableObject {
         print("Shoulder mask generated")
         
         await MainActor.run {
-          self.detectedFaceRect = faceRect
+          // For front camera mirrored images, adjust face rect X coordinate
+          var adjustedFaceRect = faceRect
+          if image.imageOrientation == .leftMirrored || image.imageOrientation == .rightMirrored ||
+             image.imageOrientation == .upMirrored || image.imageOrientation == .downMirrored {
+            adjustedFaceRect.origin.x = image.size.width - faceRect.origin.x - faceRect.width
+          }
+          
+          self.detectedFaceRect = adjustedFaceRect
           print("Applying warp with intensity: \(self.effectIntensity), range: \(self.faceEffectRange)")
           self.processedImage = imageWarper.warpImage(
             image,
-            faceRect: faceRect,
+            faceRect: faceRect,  // Use original rect for processing
             shoulderMask: shoulderMask,
             intensity: CGFloat(effectIntensity),
             faceRange: CGFloat(faceEffectRange)
@@ -122,7 +129,7 @@ class CameraViewModel: ObservableObject {
     rangeIndicatorSize = faceRect.width * scale * CGFloat(faceEffectRange * 2)
   }
   
-  func updateDisplayInfo(displaySize: CGSize, displayOffset: CGPoint, imageSize: CGSize) {
+  func updateDisplayInfo(displaySize: CGSize, displayOffset: CGPoint, imageSize: CGSize, containerSize: CGSize? = nil) {
     self.displaySize = displaySize
     self.displayOffset = displayOffset
     self.imageSize = imageSize
