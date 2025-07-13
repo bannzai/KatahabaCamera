@@ -64,11 +64,12 @@ class ImageWarper {
         if (distance < radius) {
           // Smooth falloff for natural transition
           float normalizedDistance = distance / radius;
-          // Use Gaussian-like falloff for more natural shrinking
-          float falloff = exp(-2.0 * normalizedDistance * normalizedDistance);
+          // S-curve for smooth start and end
+          float t = normalizedDistance;
+          float falloff = 1.0 - (t * t * (3.0 - 2.0 * t));
           
-          // Interpolate scale with stronger effect in center
-          float effectiveScale = mix(scale, 1.0, 1.0 - falloff);
+          // Interpolate scale based on falloff
+          float effectiveScale = mix(scale, 1.0, normalizedDistance);
           
           // Calculate source position - inverse mapping
           vec2 sourcePos;
@@ -96,15 +97,15 @@ class ImageWarper {
       return image
     }
     
-
-    let extent = image.extent
     let arguments = [
       CIVector(x: faceCenterX, y: faceCenterY),
       effectRadius,
       scale,
       CIVector(x: extent.origin.x, y: extent.origin.y, z: extent.size.width, w: extent.size.height)
     ] as [Any]
-
+    
+    let extent = image.extent
+    
     // Define the region of interest to include area that might be sampled
     let roiCallback: CIKernelROICallback = { _, rect in
       let expansion = effectRadius * 0.5
