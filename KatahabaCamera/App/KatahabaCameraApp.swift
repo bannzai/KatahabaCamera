@@ -9,10 +9,10 @@ import SwiftUI
 
 @main
 struct KatahabaCameraApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .preferredColorScheme(.dark)
-        }
+  var body: some Scene {
+    WindowGroup {
+      ContentView()
+        .preferredColorScheme(.dark)
     }
+  }
 }

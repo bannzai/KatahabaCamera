@@ -24,6 +24,18 @@ A joke camera app that makes your face smaller and shoulders wider in photos.
 2. Open `KatahabaCamera.xcodeproj` in Xcode
 3. Build and run on a physical device (camera required)
 
+## Build Verification
+
+Use the provided scripts to verify the build:
+
+```bash
+# Quick build check
+./scripts/build-check.sh
+
+# Detailed build check with multiple devices
+./scripts/build-check-detailed.sh
+```
+
 ## Usage
 
 1. **Grant Permissions**: Allow camera and photo library access when prompted

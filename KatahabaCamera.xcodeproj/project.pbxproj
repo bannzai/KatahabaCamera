@@ -10,9 +10,22 @@
 		200A01932E2165CE000CB607 /* KatahabaCamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KatahabaCamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		203C39662E21D95800A66CE2 /* Exceptions for "KatahabaCamera" folder in "KatahabaCamera" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 200A01922E2165CE000CB607 /* KatahabaCamera */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		200A01952E2165CE000CB607 /* KatahabaCamera */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				203C39662E21D95800A66CE2 /* Exceptions for "KatahabaCamera" folder in "KatahabaCamera" target */,
+			);
 			path = KatahabaCamera;
 			sourceTree = "<group>";
 		};
