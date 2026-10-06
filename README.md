@@ -26,7 +26,13 @@ A joke camera app that makes your face smaller and shoulders wider in photos.
 
 ## Build Verification
 
-Use the provided scripts to verify the build:
+Run `make` with no arguments to verify the build (the `verify` target builds the app for the iOS Simulator, the same check as CI):
+
+```bash
+make
+```
+
+Use the provided scripts for other build checks:
 
 ```bash
 # Quick build check
