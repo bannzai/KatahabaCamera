@@ -24,12 +24,20 @@ A joke camera app that makes your face smaller and shoulders wider in photos.
 2. Open `KatahabaCamera.xcodeproj` in Xcode
 3. Build and run on a physical device (camera required)
 
-## Build Verification
+## Run on the iOS Simulator
 
-Run `make` with no arguments to verify the build (the `verify` target builds the app for the iOS Simulator, the same check as CI):
+Run `make` with no arguments to build the app and launch it on the project-specific iOS Simulator (the `ios` target builds via `build-ios`, then installs and launches the app on the simulator prepared by `sim-boot`). Checks and tests are not part of this target; CI runs them.
 
 ```bash
 make
+```
+
+## Build Verification
+
+Run `make verify` to build the app for the iOS Simulator (the same check as CI):
+
+```bash
+make verify
 ```
 
 Use the provided scripts for other build checks:
