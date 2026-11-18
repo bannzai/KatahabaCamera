@@ -23,12 +23,12 @@ struct EditingView: View {
                   let containerSize = geometry.size
                   let imageAspect = imageSize.width / imageSize.height
                   let containerAspect = containerSize.width / containerSize.height
-                  
+
                   var displayWidth: CGFloat
                   var displayHeight: CGFloat
                   var offsetX: CGFloat = 0
                   var offsetY: CGFloat = 0
-                  
+
                   if imageAspect > containerAspect {
                     displayWidth = containerSize.width
                     displayHeight = containerSize.width / imageAspect
@@ -38,7 +38,7 @@ struct EditingView: View {
                     displayWidth = containerSize.height * imageAspect
                     offsetX = (containerSize.width - displayWidth) / 2
                   }
-                  
+
                   viewModel.updateDisplayInfo(
                     displaySize: CGSize(width: displayWidth, height: displayHeight),
                     displayOffset: CGPoint(x: offsetX, y: offsetY),
@@ -52,12 +52,12 @@ struct EditingView: View {
                   let containerSize = geometry.size
                   let imageAspect = imageSize.width / imageSize.height
                   let containerAspect = containerSize.width / containerSize.height
-                  
+
                   var displayWidth: CGFloat
                   var displayHeight: CGFloat
                   var offsetX: CGFloat = 0
                   var offsetY: CGFloat = 0
-                  
+
                   if imageAspect > containerAspect {
                     displayWidth = containerSize.width
                     displayHeight = containerSize.width / imageAspect
@@ -67,7 +67,7 @@ struct EditingView: View {
                     displayWidth = containerSize.height * imageAspect
                     offsetX = (containerSize.width - displayWidth) / 2
                   }
-                  
+
                   viewModel.updateDisplayInfo(
                     displaySize: CGSize(width: displayWidth, height: displayHeight),
                     displayOffset: CGPoint(x: offsetX, y: offsetY),
@@ -75,7 +75,7 @@ struct EditingView: View {
                     containerSize: containerSize
                   )
                 }
-              
+
               // Show face effect range circle
               if viewModel.showRangeIndicator {
                 ZStack {
@@ -84,12 +84,12 @@ struct EditingView: View {
                     .frame(width: viewModel.rangeIndicatorSize, height: viewModel.rangeIndicatorSize)
                     .position(viewModel.rangeIndicatorPosition)
                     .animation(.easeInOut(duration: 0.3), value: viewModel.rangeIndicatorSize)
-                  
+
                   Circle()
                     .stroke(Color.white.opacity(0.3), lineWidth: 1)
                     .frame(width: viewModel.rangeIndicatorSize * 0.6, height: viewModel.rangeIndicatorSize * 0.6)
                     .position(viewModel.rangeIndicatorPosition)
-                  
+
                   // Center adjustment indicator
                   if viewModel.showCenterAdjustment {
                     Image(systemName: "plus.circle.fill")
@@ -163,15 +163,15 @@ struct EditingView: View {
               }
             }
             .padding(.horizontal)
-            
+
             VStack(alignment: .leading, spacing: 8) {
               HStack {
                 Text("Face Effect Range")
                   .font(.caption)
                   .foregroundColor(.white.opacity(0.8))
-                
+
                 Spacer()
-                
+
                 if viewModel.faceCenterOffset != .zero {
                   Button(action: {
                     viewModel.updateFaceCenterOffset(.zero)
@@ -182,7 +182,7 @@ struct EditingView: View {
                       .foregroundColor(.white.opacity(0.8))
                   }
                 }
-                
+
                 Button(action: {
                   viewModel.showCenterAdjustment.toggle()
                   viewModel.showRangeIndicator = viewModel.showCenterAdjustment
@@ -202,12 +202,15 @@ struct EditingView: View {
                   .foregroundColor(.white.opacity(0.6))
                   .font(.caption)
 
-                Slider(value: $viewModel.faceEffectRange, in: 0.1...1.0, onEditingChanged: { editing in
-                  viewModel.showRangeIndicator = editing
-                  if !editing {
-                    viewModel.updateFaceEffectRange(viewModel.faceEffectRange)
+                Slider(
+                  value: $viewModel.faceEffectRange, in: 0.1...1.0,
+                  onEditingChanged: { editing in
+                    viewModel.showRangeIndicator = editing
+                    if !editing {
+                      viewModel.updateFaceEffectRange(viewModel.faceEffectRange)
+                    }
                   }
-                })
+                )
                 .accentColor(.white)
                 .onChange(of: viewModel.faceEffectRange) { newValue in
                   viewModel.updateRangeIndicator()

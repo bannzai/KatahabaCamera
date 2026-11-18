@@ -22,29 +22,30 @@ actor FaceDetector {
         }
 
         guard let results = request.results as? [VNFaceObservation],
-              let face = results.first else {
+          let face = results.first
+        else {
           continuation.resume(throwing: DetectionError.noFaceDetected)
           return
         }
 
         print("Face observation boundingBox: \(face.boundingBox)")
-        
+
         let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
         var faceRect = self.convertRect(face.boundingBox, toImageSize: imageSize, orientation: image.imageOrientation)
-        
+
         // Expand face rect to include more area around the face
         // TODO: [AdjustmentDistortion] Adjust expansion factor (1.0 = original size, 2.0 = double size)
         let expansionFactor: CGFloat = 1.0  // Original size
         let widthExpansion = faceRect.width * (expansionFactor - 1.0) / 2.0
         let heightExpansion = faceRect.height * (expansionFactor - 1.0) / 2.0
-        
+
         faceRect = CGRect(
           x: faceRect.origin.x - widthExpansion,
           y: faceRect.origin.y - heightExpansion,
           width: faceRect.width * expansionFactor,
           height: faceRect.height * expansionFactor
         )
-        
+
         print("Converted face rect: \(faceRect)")
         print("Expanded face rect: \(faceRect)")
         continuation.resume(returning: faceRect)
@@ -70,7 +71,7 @@ actor FaceDetector {
 
     return CGRect(x: x, y: y, width: width, height: height)
   }
-  
+
   private func cgImageOrientation(from uiOrientation: UIImage.Orientation) -> CGImagePropertyOrientation {
     switch uiOrientation {
     case .up: return .up

@@ -1,7 +1,7 @@
-import SwiftUI
-import UIKit
 import Combine
 import Photos
+import SwiftUI
+import UIKit
 
 @MainActor
 class CameraViewModel: ObservableObject {
@@ -18,14 +18,14 @@ class CameraViewModel: ObservableObject {
   @Published var showRangeIndicator = false
   @Published var rangeIndicatorSize: CGFloat = 100
   @Published var rangeIndicatorPosition: CGPoint = .zero
-  @Published var faceCenterOffset: CGPoint = .zero // Offset from detected face center
+  @Published var faceCenterOffset: CGPoint = .zero  // Offset from detected face center
   @Published var showCenterAdjustment = false
 
   let cameraService = CameraService()
   private let faceDetector = FaceDetector()
   private let shoulderDetector = ShoulderDetector()
   private let imageWarper = ImageWarper()
-  
+
   var displaySize: CGSize = .zero
   var imageSize: CGSize = .zero
   private var detectedFaceRect: CGRect?
@@ -43,7 +43,7 @@ class CameraViewModel: ObservableObject {
         self?.processImage(image)
       }
       .store(in: &cancellables)
-    
+
     cameraService.$permissionGranted
       .sink { [weak self] granted in
         self?.permissionGranted = granted
@@ -59,35 +59,33 @@ class CameraViewModel: ObservableObject {
     Task {
       do {
         print("Processing image - size: \(image.size), orientation: \(image.imageOrientation.rawValue)")
-        
+
         let faceRect = try await faceDetector.detectFace(in: image)
         print("Face detected at: \(faceRect)")
-        
+
         let shoulderMask = try await shoulderDetector.detectShoulders(in: image)
         print("Shoulder mask generated")
-        
+
         await MainActor.run {
           // For front camera mirrored images, adjust face rect X coordinate
           var adjustedFaceRect = faceRect
-          if image.imageOrientation == .leftMirrored || image.imageOrientation == .rightMirrored ||
-             image.imageOrientation == .upMirrored || image.imageOrientation == .downMirrored {
+          if image.imageOrientation == .leftMirrored || image.imageOrientation == .rightMirrored || image.imageOrientation == .upMirrored || image.imageOrientation == .downMirrored {
             adjustedFaceRect.origin.x = image.size.width - faceRect.origin.x - faceRect.width
           }
-          
+
           self.detectedFaceRect = adjustedFaceRect
           print("Applying warp with intensity: \(self.effectIntensity), range: \(self.faceEffectRange)")
-          
+
           // Apply center offset to face rect
           var offsetFaceRect = faceRect
-          if image.imageOrientation == .leftMirrored || image.imageOrientation == .rightMirrored ||
-             image.imageOrientation == .upMirrored || image.imageOrientation == .downMirrored {
+          if image.imageOrientation == .leftMirrored || image.imageOrientation == .rightMirrored || image.imageOrientation == .upMirrored || image.imageOrientation == .downMirrored {
             // For mirrored images, reverse X offset
             offsetFaceRect.origin.x -= faceCenterOffset.x
           } else {
             offsetFaceRect.origin.x += faceCenterOffset.x
           }
           offsetFaceRect.origin.y += faceCenterOffset.y
-          
+
           self.processedImage = imageWarper.warpImage(
             image,
             faceRect: offsetFaceRect,  // Use offset rect for processing
@@ -96,7 +94,7 @@ class CameraViewModel: ObservableObject {
             faceRange: CGFloat(faceEffectRange)
           )
           self.updateRangeIndicator()
-          
+
           if self.processedImage != nil {
             print("Image processing completed successfully")
           }
@@ -116,42 +114,43 @@ class CameraViewModel: ObservableObject {
       processImage(capturedImage)
     }
   }
-  
+
   func updateFaceEffectRange(_ range: Double) {
     faceEffectRange = range
     updateRangeIndicator()
-    
+
     if let capturedImage = capturedImage {
       processImage(capturedImage)
     }
   }
-  
+
   func updateFaceCenterOffset(_ offset: CGPoint) {
     faceCenterOffset = offset
     updateRangeIndicator()
-    
+
     if let capturedImage = capturedImage {
       processImage(capturedImage)
     }
   }
-  
+
   func updateRangeIndicator() {
     guard let faceRect = detectedFaceRect,
-          displaySize.width > 0 else { return }
-    
+      displaySize.width > 0
+    else { return }
+
     // Calculate scale factor
     let scale = displaySize.width / imageSize.width
-    
+
     // Convert face rect to screen coordinates with offset
     let screenFaceCenter = CGPoint(
       x: displayOffset.x + (faceRect.midX + faceCenterOffset.x) * scale,
       y: displayOffset.y + (faceRect.midY + faceCenterOffset.y) * scale
     )
-    
+
     rangeIndicatorPosition = screenFaceCenter
     rangeIndicatorSize = faceRect.width * scale * CGFloat(faceEffectRange * 2)
   }
-  
+
   func updateDisplayInfo(displaySize: CGSize, displayOffset: CGPoint, imageSize: CGSize, containerSize: CGSize? = nil) {
     self.displaySize = displaySize
     self.displayOffset = displayOffset

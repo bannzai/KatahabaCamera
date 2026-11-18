@@ -1,0 +1,10 @@
+{
+  "indentation": {
+    "spaces": 2
+  },
+  "lineLength": 300,
+  "rules": {
+    "ReplaceForEachWithForLoop": false
+  },
+  "version": 1
+}

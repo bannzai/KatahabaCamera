@@ -1,5 +1,5 @@
-import SwiftUI
 import AVFoundation
+import SwiftUI
 
 struct CameraView: View {
   @StateObject private var viewModel = CameraViewModel()
@@ -61,12 +61,12 @@ struct CameraPreviewView: UIViewRepresentable {
   func makeUIView(context: Context) -> UIView {
     let view = PreviewView()
     view.backgroundColor = .black
-    
+
     let previewLayer = cameraService.makePreviewLayer()
     previewLayer.frame = view.bounds
     previewLayer.videoGravity = .resizeAspectFill
     view.layer.addSublayer(previewLayer)
-    
+
     return view
   }
 
