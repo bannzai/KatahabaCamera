@@ -1,0 +1,26 @@
+# managed-by: setup-ci (bannzai/castle)
+# 再生成: /setup-ci (このファイルを手で編集する場合はこのヘッダーを外して手動管理に切り替える)
+name: CI Lint (swift)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift-format:
+    runs-on: ubuntu-latest
+    container: swift:6.4
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: swift-format の lint を実行する
+        run: swift format lint --strict --recursive .

@@ -1,8 +1,8 @@
 import AVFoundation
-import UIKit
 import Combine
-import Vision
 import Photos
+import UIKit
+import Vision
 
 @MainActor
 class CameraService: NSObject, ObservableObject {
@@ -104,19 +104,19 @@ class CameraService: NSObject, ObservableObject {
 extension CameraService: AVCapturePhotoCaptureDelegate {
   func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
     guard let data = photo.fileDataRepresentation() else { return }
-    
+
     // Create UIImage with proper orientation
     guard let originalImage = UIImage(data: data) else { return }
-    
+
     // Fix orientation and mirror for front camera
     guard let cgImage = originalImage.cgImage else { return }
-    
+
     // Create properly oriented image
     let orientedImage: UIImage
-    
+
     // Debug print orientation
     print("Original image orientation: \(originalImage.imageOrientation.rawValue)")
-    
+
     // For front camera, we need to handle both orientation and mirroring
     switch originalImage.imageOrientation {
     case .right:

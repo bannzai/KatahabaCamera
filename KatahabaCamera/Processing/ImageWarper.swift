@@ -1,6 +1,6 @@
-import UIKit
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import UIKit
 
 @MainActor
 class ImageWarper {
@@ -20,7 +20,7 @@ class ImageWarper {
 
     // TODO: [AdjustmentDistortion] Enable/disable shoulder effect
     let enableShoulderEffect = false
-    
+
     let finalImage: CIImage
     if enableShoulderEffect {
       finalImage = applyShoulderScaling(
@@ -46,100 +46,100 @@ class ImageWarper {
   private func applyFaceScaling(to image: CIImage, faceRect: CGRect, scale: CGFloat, range: CGFloat) -> CIImage {
     let faceCenterX = faceRect.midX
     let faceCenterY = faceRect.midY
-    
+
     print("Applying face scaling - center: (\(faceCenterX), \(faceCenterY)), scale: \(scale), range: \(range)")
-    
+
     // Use a custom warp kernel for uniform face shrinking
     // Wider range for more control (0.1 to 1.0)
     let clampedRange = max(0.1, min(1.0, range))
     let effectRadius = faceRect.width * clampedRange
-    
+
     // Define the warp kernel with smooth falloff
-    let warpKernel = CIWarpKernel(source: """
-      kernel vec2 uniformScale(vec2 centerPoint, float radius, float scale) {
-        vec2 currentPos = destCoord();
-        vec2 delta = currentPos - centerPoint;
-        float distance = length(delta);
-        
-        if (distance < radius && distance > 0.1) {
-          // Smooth falloff for natural transition
-          float normalizedDistance = distance / radius;
-          // Use cosine interpolation for smoother edge
-          float falloff = (1.0 + cos(normalizedDistance * 3.14159)) * 0.5;
-          
-          // Apply scale based on falloff
-          float effectiveScale = mix(scale, 1.0, 1.0 - falloff);
-          
-          // Calculate source position for uniform scaling
-          vec2 direction = delta / distance;
-          float sourceDistance = distance / effectiveScale;
-          return centerPoint + direction * sourceDistance;
-        }
-        
-        return currentPos;
-      }
-      """)
-    
-    guard let kernel = warpKernel else {
+    guard
+      let kernel = CIWarpKernel(
+        source: """
+          kernel vec2 uniformScale(vec2 centerPoint, float radius, float scale) {
+            vec2 currentPos = destCoord();
+            vec2 delta = currentPos - centerPoint;
+            float distance = length(delta);
+            
+            if (distance < radius && distance > 0.1) {
+              // Smooth falloff for natural transition
+              float normalizedDistance = distance / radius;
+              // Use cosine interpolation for smoother edge
+              float falloff = (1.0 + cos(normalizedDistance * 3.14159)) * 0.5;
+              
+              // Apply scale based on falloff
+              float effectiveScale = mix(scale, 1.0, 1.0 - falloff);
+              
+              // Calculate source position for uniform scaling
+              vec2 direction = delta / distance;
+              float sourceDistance = distance / effectiveScale;
+              return centerPoint + direction * sourceDistance;
+            }
+            
+            return currentPos;
+          }
+          """)
+    else {
       print("Failed to create warp kernel")
       return image
     }
-    
-    let arguments = [
-      CIVector(x: faceCenterX, y: faceCenterY),
-      effectRadius,
-      scale
-    ] as [Any]
-    
+
     let extent = image.extent
-    
+
     return kernel.apply(
       extent: extent,
       roiCallback: { _, rect in rect },
       image: image,
-      arguments: arguments
+      arguments: [
+        CIVector(x: faceCenterX, y: faceCenterY),
+        effectRadius,
+        scale,
+      ] as [Any]
     ) ?? image
   }
 
   private func applyShoulderScaling(to image: CIImage, shoulderMask: CIImage, faceRect: CGRect, scale: CGFloat, originalSize: CGSize) -> CIImage {
-    let resizedMask = shoulderMask.transformed(by: CGAffineTransform(
-      scaleX: originalSize.width / shoulderMask.extent.width,
-      y: originalSize.height / shoulderMask.extent.height
-    ))
+    let resizedMask = shoulderMask.transformed(
+      by: CGAffineTransform(
+        scaleX: originalSize.width / shoulderMask.extent.width,
+        y: originalSize.height / shoulderMask.extent.height
+      ))
 
     // Create smooth gradient mask for shoulders
     // TODO: [AdjustmentDistortion] Adjust shoulder offset from face (0.5 = half face height below face)
     let shoulderY = faceRect.maxY + faceRect.height * 0.5
-    
+
     let linearGradient = CIFilter.linearGradient()
     linearGradient.point0 = CGPoint(x: originalSize.width / 2, y: faceRect.maxY)
     linearGradient.point1 = CGPoint(x: originalSize.width / 2, y: shoulderY)
     linearGradient.color0 = CIColor(red: 0, green: 0, blue: 0)
     linearGradient.color1 = CIColor(red: 1, green: 1, blue: 1)
-    
+
     guard let gradientMask = linearGradient.outputImage else { return image }
-    
+
     // Combine person mask with gradient
     let multiplyFilter = CIFilter.multiplyCompositing()
     multiplyFilter.inputImage = resizedMask
     multiplyFilter.backgroundImage = gradientMask.cropped(to: CGRect(origin: .zero, size: originalSize))
-    
+
     guard let shoulderMaskWithGradient = multiplyFilter.outputImage else { return image }
 
     // Apply horizontal stretch using affine transform
     // Center the transform to avoid displacement
     let centerX = image.extent.midX
     let centerY = image.extent.midY
-    
+
     // Create a transform that scales from the center
     let transform = CGAffineTransform(translationX: -centerX, y: -centerY)
       .scaledBy(x: scale, y: 1.0)
       .translatedBy(x: centerX / scale, y: centerY)
-    
+
     // Ensure the transformed image fits within the original bounds
     let originalExtent = image.extent
     let stretchedImage = image.transformed(by: transform)
-    
+
     // Calculate the cropping rect to center the stretched image
     let stretchedExtent = stretchedImage.extent
     let xOffset = (stretchedExtent.width - originalExtent.width) / 2
@@ -149,7 +149,7 @@ class ImageWarper {
       width: originalExtent.width,
       height: originalExtent.height
     )
-    
+
     let croppedStretchedImage = stretchedImage.cropped(to: cropRect)
       .transformed(by: CGAffineTransform(translationX: -cropRect.origin.x, y: -cropRect.origin.y))
 

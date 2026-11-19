@@ -1,6 +1,6 @@
+import CoreImage
 import UIKit
 import Vision
-import CoreImage
 
 actor ShoulderDetector {
 
@@ -22,7 +22,8 @@ actor ShoulderDetector {
         }
 
         guard let results = request.results as? [VNPixelBufferObservation],
-              let segmentation = results.first else {
+          let segmentation = results.first
+        else {
           continuation.resume(throwing: DetectionError.segmentationFailed)
           return
         }
@@ -44,7 +45,7 @@ actor ShoulderDetector {
       }
     }
   }
-  
+
   private func cgImageOrientation(from uiOrientation: UIImage.Orientation) -> CGImagePropertyOrientation {
     switch uiOrientation {
     case .up: return .up
